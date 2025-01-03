@@ -17,7 +17,7 @@ public class PlayerController : MonoBehaviour
     [SerializeField] float jumpCooldown = 0.5f;
     [SerializeField] float jumpCooldownTimer = 0f;
     public LayerMask groundLayer;
-    public GameObject backgroundfollower;
+    //public GameObject backgroundfollower;
 
 
     void Awake()
@@ -42,7 +42,7 @@ public class PlayerController : MonoBehaviour
     void Update()
     {
         jump();
-        MaintainBackgroundPosition();
+        //MaintainBackgroundPosition();
     }
 
     void movement()
@@ -50,11 +50,11 @@ public class PlayerController : MonoBehaviour
         float h = Input.GetAxis("Horizontal");
         if (h != 0)
         {
-            if (h > 0)
+            if (h <0)
             {
                 transform.localScale = new Vector3(1f, 1f, 1f);
             }
-            else if (h < 0)
+            else if (h > 0)
             {
                 transform.localScale = new Vector3(-1f, 1f, 1f);
             }
@@ -112,9 +112,9 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    void MaintainBackgroundPosition(){
-        Vector3 backgroundPosition = backgroundfollower.transform.position;
-        backgroundPosition = new Vector3(transform.position.x, transform.position.y);
-        backgroundfollower.transform.position = backgroundPosition;
-    }
+    // void MaintainBackgroundPosition(){
+    //     Vector3 backgroundPosition = backgroundfollower.transform.position;
+    //     backgroundPosition = new Vector3(transform.position.x, transform.position.y);
+    //     backgroundfollower.transform.position = backgroundPosition;
+    // }
 }
