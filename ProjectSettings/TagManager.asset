@@ -15,7 +15,7 @@ TagManager:
   - Ground
   - PopUp
   - Background
-  - 
+  - Player
   - 
   - 
   - 
@@ -41,4 +41,16 @@ TagManager:
   m_SortingLayers:
   - name: Default
     uniqueID: 0
+    locked: 0
+  - name: Decorations
+    uniqueID: 3785303849
+    locked: 0
+  - name: Environment
+    uniqueID: 3570748733
+    locked: 0
+  - name: Player
+    uniqueID: 3554199873
+    locked: 0
+  - name: GrassGround
+    uniqueID: 4199300535
     locked: 0

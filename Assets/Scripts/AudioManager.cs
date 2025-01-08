@@ -23,7 +23,7 @@ public class AudioManager : MonoBehaviour
             Destroy(gameObject); // Hancurkan duplikat instance
             return;
         }
-
+        
         // Ambil nama scene aktif dan mulai mainkan musik
         currentSceneName = SceneManager.GetActiveScene().name;
         PlayMusicForScene(currentSceneName);
@@ -66,7 +66,7 @@ public class AudioManager : MonoBehaviour
         // Ganti musik berdasarkan nama scene
         switch (sceneName)
         {
-            case "SampleScene":
+            case "MainMenu":
                 PlayMusic("PlayTheme");
                 break;
             default:
@@ -139,6 +139,7 @@ public class AudioManager : MonoBehaviour
         }
         musicSource.volume = volume; // Atur volume musik
         PlayerPrefs.SetFloat("musicVolume", volume); // Simpan ke PlayerPrefs
+        PlayerPrefs.Save();
     }
 
     public void SetSFXVolume(float volume)
@@ -151,5 +152,6 @@ public class AudioManager : MonoBehaviour
         }
         sfxSource.volume = volume; // Atur volume SFX
         PlayerPrefs.SetFloat("sfxVolume", volume); // Simpan ke PlayerPrefs
+        PlayerPrefs.Save();
     }
 }
