@@ -3,6 +3,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -12,7 +13,16 @@ public class MainMenu : MonoBehaviour
     PlayerLivesManager playerLivesManager;
     //public GameObject StartMenu, SettingsMenu, ExitMenu;
     public List<GameObject> PopUp = new List<GameObject>();
-    public Button StartButton, SettingsButton, ExitButton;
+    // public List<GameObject> Arc = new List<GameObject>();
+    public Dictionary<string, string> arcToSceneMap = new Dictionary<string, string>
+    {
+        { "Anoman's Obong Arc", "Anoman_Lv1" },
+        { "Ramayana vs Ravana Arc", "Ramayana_Lv1" },
+        
+    };
+
+
+    public Button StartButton, ContinueButton, SettingsButton, ExitButton;
 
     private void Awake()
     {
@@ -29,10 +39,10 @@ public class MainMenu : MonoBehaviour
     {
         // Fungsi ini akan di panggil setiap frame
         // Digunakan untuk menambahkan event listener pada button
-        // StartButton.onClick.AddListener(PopUp_StartGame);
-        // ExitButton.onClick.AddListener(PopUp_quit);
-        // SettingsButton.onClick.AddListener(PopUp_Settings);
-        //Pause();
+        StartButton.onClick.AddListener(PopUp_StartGame);
+        ExitButton.onClick.AddListener(PopUp_quit);
+        SettingsButton.onClick.AddListener(PopUp_Settings);
+        // Pause();
     }
 
 
@@ -43,7 +53,24 @@ public class MainMenu : MonoBehaviour
         // Digunakan untuk menampilkan popup start game dan menghilangkan popup yang lain
         foreach (GameObject PopUp in PopUp)
         {
-            if (PopUp.name == "StartGame")
+            if (PopUp.name == "StartNewGame")
+            {
+                PopUp.SetActive(true);
+            }
+            else
+            {
+                PopUp.SetActive(false);
+            }
+        }
+    }
+
+    public void PopUp_ContinueGame()
+    {
+        // Fungsi ini akan di panggil saat button continue di klik
+        // Digunakan untuk menampilkan popup continue game dan menghilangkan popup yang lain
+        foreach (GameObject PopUp in PopUp)
+        {
+            if (PopUp.name == "ContinueGame")
             {
                 PopUp.SetActive(true);
             }
@@ -87,14 +114,19 @@ public class MainMenu : MonoBehaviour
     }
 
     //Function
-    public void PlayGame()
+    public void PlayGame(string arcName)
     {
-        // Fungsi ini akan di panggil saat button play di klik
-        // Digunakan untuk memuat scene selanjutnya
-        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex + 1);
-        PlayerPrefs.SetInt("Lives", 5);
-        // Digunakan untuk mengatur kecepatan game
-        Time.timeScale = 1f;
+        if (arcToSceneMap.TryGetValue(arcName, out string sceneName))
+        {
+            Debug.Log($"Loading scene: {sceneName}");
+            SceneManager.LoadScene(sceneName);
+            PlayerPrefs.SetInt("Lives", 5);
+            Time.timeScale = 1f;
+        }
+        else
+        {
+            Debug.LogWarning($"Arc not found: {arcName}");
+        }
     }
     public void ExitGame()
     {
@@ -103,7 +135,8 @@ public class MainMenu : MonoBehaviour
         Application.Quit();
     }
 
-    public void toMainMenu(){
+    public void toMainMenu()
+    {
         // Fungsi ini akan di panggil saat button main menu di klik
         SceneManager.LoadScene(0);
         Time.timeScale = 0;
@@ -137,27 +170,27 @@ public class MainMenu : MonoBehaviour
     }
 
     // Fungsi ini digunakan untuk  pause di game
-    public void Pause()
-    {
-        playerLivesManager = GameObject.Find("Player").GetComponent<PlayerLivesManager>();
-        if (playerLivesManager != null)
-        {
-            bool isDead = playerLivesManager.isDead;
-            Transform parentTransform = GameObject.Find("onGUI").transform;
-            GameObject Pause = parentTransform.Find("Pause").gameObject;
-            if (Pause != null && Input.GetKeyDown(KeyCode.Escape) && Time.timeScale == 1f)
-            {
-                Pause.SetActive(true);
-                Time.timeScale = 0f;
-            }
-            else if (Pause != null && Input.GetKeyDown(KeyCode.Escape) && Time.timeScale == 0f && !isDead)
-            {
-                Pause.SetActive(false);
-                Time.timeScale = 1f;
-            }
-        }
+    // public void Pause()
+    // {
+    //     playerLivesManager = GameObject.Find("Player").GetComponent<PlayerLivesManager>();
+    //     if (playerLivesManager != null)
+    //     {
+    //         bool isDead = playerLivesManager.isDead;
+    //         Transform parentTransform = GameObject.Find("onGUI").transform;
+    //         GameObject Pause = parentTransform.Find("Pause").gameObject;
+    //         if (Pause != null && Input.GetKeyDown(KeyCode.Escape) && Time.timeScale == 1f)
+    //         {
+    //             Pause.SetActive(true);
+    //             Time.timeScale = 0f;
+    //         }
+    //         else if (Pause != null && Input.GetKeyDown(KeyCode.Escape) && Time.timeScale == 0f && !isDead)
+    //         {
+    //             Pause.SetActive(false);
+    //             Time.timeScale = 1f;
+    //         }
+    //     }
 
-    }
+    // }
 
 }
 

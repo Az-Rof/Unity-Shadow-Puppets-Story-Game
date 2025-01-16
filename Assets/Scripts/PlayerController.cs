@@ -65,6 +65,7 @@ public class PlayerController : MonoBehaviour
         WallJump();
         Dashing();
         jump();
+        //Attack();
         //MaintainBackgroundPosition();
 
     }
@@ -110,6 +111,7 @@ public class PlayerController : MonoBehaviour
     {
         if (!isjump && onground && Input.GetKeyDown(KeyCode.Space) && jumpCooldownTimer <= 0f)
         {
+            animator.SetBool("onGround", false);
             AudioManager.Instance.PlaySFX("Jump");
             jumpCooldownTimer = jumpCooldown;
             StartCoroutine(PrepareJump());
@@ -153,6 +155,8 @@ public class PlayerController : MonoBehaviour
 
             if (Input.GetKeyDown(KeyCode.Space))
             {
+                AudioManager.Instance.PlaySFX("Jump");
+
                 // Update player scale to face the wall
                 if (wallDirection != 0)
                 {
@@ -181,11 +185,8 @@ public class PlayerController : MonoBehaviour
 
     IEnumerator PrepareJump()
     {
-        animator.SetBool("onGround", false);
         rigidbody2D.AddForce(new Vector2(0, jumpforce), ForceMode2D.Impulse);
-        yield return new WaitForSeconds(0.01f);
-
-        
+        yield return new WaitForSeconds(0.01f);        
     }
 
     void isGrounded()
@@ -214,6 +215,7 @@ public class PlayerController : MonoBehaviour
         if (canDash && Input.GetKeyDown(KeyCode.LeftShift))
         {
             animator.SetTrigger("isDash");
+            AudioManager.Instance.PlaySFX("Dash");
             StartCoroutine(Dash());
         }
     }
@@ -242,4 +244,5 @@ public class PlayerController : MonoBehaviour
     //     backgroundPosition = new Vector3(transform.position.x, transform.position.y);
     //     backgroundfollower.transform.position = backgroundPosition;
     // }
+   
 }

@@ -1,6 +1,7 @@
 using System;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 public class AudioManager : MonoBehaviour
 {
@@ -8,6 +9,8 @@ public class AudioManager : MonoBehaviour
     public Audio[] musicSounds, sfxSounds; // Array untuk menyimpan data suara musik dan SFX
     public AudioSource musicSource, sfxSource; // AudioSource untuk memutar musik dan SFX
     private string currentSceneName; // Nama scene aktif saat ini
+
+    public Slider musicSlider, sfxSlider; // Sliders untuk volume musik dan SFX
 
     public void Awake()
     {
@@ -23,7 +26,7 @@ public class AudioManager : MonoBehaviour
             Destroy(gameObject); // Hancurkan duplikat instance
             return;
         }
-        
+
         // Ambil nama scene aktif dan mulai mainkan musik
         currentSceneName = SceneManager.GetActiveScene().name;
         PlayMusicForScene(currentSceneName);
@@ -34,11 +37,21 @@ public class AudioManager : MonoBehaviour
         // Ambil pengaturan volume musik dan SFX jika sudah disimpan
         if (PlayerPrefs.HasKey("musicVolume"))
         {
-            musicSource.volume = PlayerPrefs.GetFloat("musicVolume");
+            float musicVolume = PlayerPrefs.GetFloat("musicVolume");
+            musicSource.volume = musicVolume;
+            if (musicSlider != null)
+            {
+                musicSlider.value = musicVolume;
+            }
         }
         if (PlayerPrefs.HasKey("sfxVolume"))
         {
-            sfxSource.volume = PlayerPrefs.GetFloat("sfxVolume");
+            float sfxVolume = PlayerPrefs.GetFloat("sfxVolume");
+            sfxSource.volume = sfxVolume;
+            if (sfxSlider != null)
+            {
+                sfxSlider.value = sfxVolume;
+            }
         }
     }
 
@@ -97,13 +110,16 @@ public class AudioManager : MonoBehaviour
         if (musicSource.clip == sound.audioClip && musicSource.isPlaying)
         {
             Debug.Log($"Music {name} is already playing.");
-            return;
         }
-
-        // Set klip musik dan mulai mainkan
-        musicSource.clip = sound.audioClip;
-        musicSource.Play();
+        else
+        {
+            // Set the clip of the music source to the audio clip of the sound
+            musicSource.clip = sound.audioClip;
+            // Play the music
+            musicSource.Play();
+        }
     }
+
 
     public void PlaySFX(string name)
     {
@@ -153,5 +169,17 @@ public class AudioManager : MonoBehaviour
         sfxSource.volume = volume; // Atur volume SFX
         PlayerPrefs.SetFloat("sfxVolume", volume); // Simpan ke PlayerPrefs
         PlayerPrefs.Save();
+    }
+
+    public void musicVolume()
+    {
+        SetMusicVolume(musicSlider.value);
+        PlayerPrefs.SetFloat("musicVolume", musicSlider.value);
+    }
+
+    public void sfxVolume()
+    {
+        SetSFXVolume(sfxSlider.value);
+        PlayerPrefs.SetFloat("sfxVolume", sfxSlider.value);
     }
 }
