@@ -10,7 +10,6 @@ using UnityEngine.UI;
 
 public class MainMenu : MonoBehaviour
 {
-    PlayerLivesManager playerLivesManager;
     //public GameObject StartMenu, SettingsMenu, ExitMenu;
     public List<GameObject> PopUp = new List<GameObject>();
     // public List<GameObject> Arc = new List<GameObject>();
@@ -134,63 +133,5 @@ public class MainMenu : MonoBehaviour
         // Digunakan untuk keluar dari game
         Application.Quit();
     }
-
-    public void toMainMenu()
-    {
-        // Fungsi ini akan di panggil saat button main menu di klik
-        SceneManager.LoadScene(0);
-        Time.timeScale = 0;
-    }
-
-    public void Restart()
-    {
-        // Fungsi ini akan di panggil saat button restart di klik
-        if (PlayerPrefs.GetInt("Lives") <= 0)
-        {
-            playerLivesManager.ResetLives();
-            SceneManager.LoadScene(1);
-            Time.timeScale = 1f;
-        }
-        else
-        {
-            // Digunakan untuk memuat ulang scene yang sama
-            // Dapatkan nama scene yang sedang berjalan
-            string currentSceneName = SceneManager.GetActiveScene().name;
-            // Muat ulang scene yang sama
-            SceneManager.LoadScene(currentSceneName);
-            // Digunakan untuk mengatur kecepatan game
-            Time.timeScale = 1f;
-        }
-
-    }
-
-    public void Resume()
-    {
-        Time.timeScale = 1f;
-    }
-
-    // Fungsi ini digunakan untuk  pause di game
-    // public void Pause()
-    // {
-    //     playerLivesManager = GameObject.Find("Player").GetComponent<PlayerLivesManager>();
-    //     if (playerLivesManager != null)
-    //     {
-    //         bool isDead = playerLivesManager.isDead;
-    //         Transform parentTransform = GameObject.Find("onGUI").transform;
-    //         GameObject Pause = parentTransform.Find("Pause").gameObject;
-    //         if (Pause != null && Input.GetKeyDown(KeyCode.Escape) && Time.timeScale == 1f)
-    //         {
-    //             Pause.SetActive(true);
-    //             Time.timeScale = 0f;
-    //         }
-    //         else if (Pause != null && Input.GetKeyDown(KeyCode.Escape) && Time.timeScale == 0f && !isDead)
-    //         {
-    //             Pause.SetActive(false);
-    //             Time.timeScale = 1f;
-    //         }
-    //     }
-
-    // }
-
 }
 

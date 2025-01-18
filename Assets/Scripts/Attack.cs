@@ -20,21 +20,21 @@ public class Attack : MonoBehaviour
     {
         if (Input.GetKeyDown(KeyCode.E) && this.gameObject.tag == "Player")
         {
-            animator.SetTrigger("isAttack");
             PerformAttack();
         }
     }
 
     // **Attack Logic**
-    void PerformAttack()
+    public void PerformAttack()
     {
         if (attackPoint == null) return;
-
+        animator.SetTrigger("isAttack"); // Play attack animation
         // Detect enemies in range
         Collider2D[] hitEnemies = Physics2D.OverlapCircleAll(attackPoint.position, attackRange, enemyLayer);
         // Damage each enemy hit
         foreach (Collider2D enemy in hitEnemies)
         {
+            AudioManager.Instance.PlaySFX("Attack"); // Play attack sound effect from AudioManager instance.Play("Attack");
             Debug.Log("Hit: " + enemy.name);
             Health enemyHealth = enemy.GetComponent<Health>();
             if (enemyHealth != null) enemyHealth.TakeDamage(damage); // Assuming the enemy has a Health script

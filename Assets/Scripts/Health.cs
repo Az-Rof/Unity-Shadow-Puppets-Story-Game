@@ -5,7 +5,7 @@ using UnityEngine;
 public class Health : MonoBehaviour
 {
     // **Variables**
-    public int maxHealth = 100; // Maximum health of the entity
+    public int maxHealth; // Maximum health of the entity
     public int currentHealth; // Current health of the entity
 
     // **Initialization**

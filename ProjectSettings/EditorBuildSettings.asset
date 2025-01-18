@@ -11,4 +11,9 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/Anoman_Lv1.unity
     guid: ce88e10b148f6f14098b8bcbf38cfe6f
-  m_configObjects: {}
+  m_configObjects:
+    com.unity.adaptiveperformance.google.android.provider_settings: {fileID: 11400000, guid: 5fac99225b44f3846b20501efa84df8d, type: 2}
+    com.unity.adaptiveperformance.loader_settings: {fileID: 11400000, guid: 801f3f6f25592db44ac2df5719199dad, type: 2}
+    com.unity.adaptiveperformance.samsung.android.provider_settings: {fileID: 11400000, guid: c9efc1edbc72be043b69e0c5123f2e4b, type: 2}
+    com.unity.adaptiveperformance.simulator.provider_settings: {fileID: 11400000, guid: da2f5b74b92368f42b1ae2f4b4be2c81, type: 2}
+    com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 4c4fefa484f602247bb3efcbaa96bbd0, type: 3}

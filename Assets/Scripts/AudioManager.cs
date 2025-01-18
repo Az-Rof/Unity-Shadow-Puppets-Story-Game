@@ -1,6 +1,7 @@
 using System;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using System.Linq;
 using UnityEngine.UI;
 
 public class AudioManager : MonoBehaviour
@@ -10,10 +11,15 @@ public class AudioManager : MonoBehaviour
     public AudioSource musicSource, sfxSource; // AudioSource untuk memutar musik dan SFX
     private string currentSceneName; // Nama scene aktif saat ini
 
-    public Slider musicSlider, sfxSlider; // Sliders untuk volume musik dan SFX
+    public Slider musicSlider;
+    public Slider sfxSlider;
+    // public Slider musicSlider, sfxSlider; // Sliders untuk volume musik dan SFX
 
     public void Awake()
     {
+
+        musicSlider = Resources.FindObjectsOfTypeAll<GameObject>().FirstOrDefault(x => x.name == "musicVolume")?.GetComponent<Slider>();
+        sfxSlider = Resources.FindObjectsOfTypeAll<GameObject>().FirstOrDefault(x => x.name == "sfxVolume")?.GetComponent<Slider>();
         // Implementasi Singleton
         if (Instance == null)
         {
@@ -34,6 +40,17 @@ public class AudioManager : MonoBehaviour
 
     public void Start()
     {
+
+        // Referensi ulang slider setiap kali scene dimuat
+        musicSlider = Resources.FindObjectsOfTypeAll<GameObject>().FirstOrDefault(x => x.name == "musicVolume")?.GetComponent<Slider>();
+        sfxSlider = Resources.FindObjectsOfTypeAll<GameObject>().FirstOrDefault(x => x.name == "sfxVolume")?.GetComponent<Slider>();
+
+        // Atur nilai slider dari PlayerPrefs
+        if (musicSlider != null)
+            musicSlider.value = PlayerPrefs.GetFloat("musicVolume", musicSlider.value);
+        if (sfxSlider != null)
+            sfxSlider.value = PlayerPrefs.GetFloat("sfxVolume", sfxSlider.value);
+
         // Ambil pengaturan volume musik dan SFX jika sudah disimpan
         if (PlayerPrefs.HasKey("musicVolume"))
         {
@@ -181,5 +198,27 @@ public class AudioManager : MonoBehaviour
     {
         SetSFXVolume(sfxSlider.value);
         PlayerPrefs.SetFloat("sfxVolume", sfxSlider.value);
+    }
+    void Update()
+    {
+        // Ambil pengaturan volume musik dan SFX jika sudah disimpan
+        if (PlayerPrefs.HasKey("musicVolume"))
+        {
+            float musicVolume = PlayerPrefs.GetFloat("musicVolume");
+            musicSource.volume = musicVolume;
+            if (musicSlider != null)
+            {
+                musicSlider.value = musicVolume;
+            }
+        }
+        if (PlayerPrefs.HasKey("sfxVolume"))
+        {
+            float sfxVolume = PlayerPrefs.GetFloat("sfxVolume");
+            sfxSource.volume = sfxVolume;
+            if (sfxSlider != null)
+            {
+                sfxSlider.value = sfxVolume;
+            }
+        }
     }
 }

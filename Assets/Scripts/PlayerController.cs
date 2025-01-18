@@ -1,13 +1,17 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using UnityEditor.Tilemaps;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class PlayerController : MonoBehaviour
 {
     Rigidbody2D rigidbody2D;
     Animator animator;
+
+    // Controls
+    public Joystick joystick;
+    public Button jumpButton, dashButton, attackButton, pauseButton;
 
     [SerializeField] float speed = 10f;
     [SerializeField] float jumpforce = 5f;
@@ -17,9 +21,8 @@ public class PlayerController : MonoBehaviour
     [SerializeField] float jumpCooldown = 0.5f;
     [SerializeField] float jumpCooldownTimer = 0f;
     public LayerMask groundLayer;
-    //public GameObject backgroundfollower;
 
-    //Dashing
+    // Dashing
     private bool canDash = true;
     private bool isDashing;
     [SerializeField] float dashingPower = 100f;
@@ -27,7 +30,7 @@ public class PlayerController : MonoBehaviour
     [SerializeField] float dashingCooldown = 1f;
     [SerializeField] private TrailRenderer tr;
 
-    //Wall Jump
+    // Wall Jump
     [SerializeField] private float wallJumpForce = 20f;
     [SerializeField] private float wallSlideSpeed = 0.3f;
     [SerializeField] private LayerMask wallLayer;
@@ -38,21 +41,40 @@ public class PlayerController : MonoBehaviour
     private float wallJumpTime = 0.2f;
     private float wallJumpTimer;
 
+    [SerializeField] private bool isJumping = false;
+
+    // Stats
+    public Slider healthSlider, staminaSlider; // Sliders for UI representation
+    public float maxHealth = 100f; // Maximum health
+    public float maxStamina = 100f; // Maximum stamina
+    private float currentHealth; // Current health
+    private float currentStamina; // Current stamina
+
+    // Regeneration rates
+    [SerializeField] private float staminaRegenRate = 5f; // Stamina regeneration per second
+    [SerializeField] private float healthRegenRate = 0.0000000001f; // Health regeneration per second
 
     void Awake()
     {
         rigidbody2D = GetComponent<Rigidbody2D>();
         animator = GetComponent<Animator>();
         tr = GetComponent<TrailRenderer>();
+        currentHealth = maxHealth; // Initialize current health
+        currentStamina = maxStamina; // Initialize current stamina
     }
 
-    // Start is called before the first frame update
     void Start()
     {
+        // Initialize sliders
+        healthSlider.maxValue = maxHealth;
+        healthSlider.value = currentHealth;
+        staminaSlider.maxValue = maxStamina;
+        staminaSlider.value = currentStamina;
 
+        StartCoroutine(RegenerateStamina());
+        //StartCoroutine(RegenerateHealth());
     }
 
-    // Update is called once per frame
     void FixedUpdate()
     {
         isGrounded();
@@ -62,30 +84,22 @@ public class PlayerController : MonoBehaviour
     void Update()
     {
         WallSlide();
-        WallJump();
-        Dashing();
-        jump();
-        //Attack();
-        //MaintainBackgroundPosition();
 
+        // Set Listener Button
+        jumpButton.onClick.AddListener(handleJump);
+        dashButton.onClick.AddListener(Dashing);
     }
 
     private bool IsTouchingWall()
     {
         RaycastHit2D hitRight = Physics2D.Raycast(transform.position, Vector2.right, wallCheckDistance, wallLayer);
         RaycastHit2D hitLeft = Physics2D.Raycast(transform.position, Vector2.left, wallCheckDistance, wallLayer);
-        //animator.SetBool("wallSliding", hitRight.collider || hitLeft.collider);
-        // Draw debug rays
-        Debug.DrawRay(transform.position, Vector2.right * wallCheckDistance, Color.red);
-        Debug.DrawRay(transform.position, Vector2.left * wallCheckDistance, Color.red);
-
         return hitRight.collider != null || hitLeft.collider != null;
     }
 
-
     void movement()
     {
-        float h = Input.GetAxis("Horizontal");
+        float h = joystick.Horizontal;
         if (!isDashing && h != 0)
         {
             if (h < 0)
@@ -96,31 +110,34 @@ public class PlayerController : MonoBehaviour
             {
                 transform.localScale = new Vector3(-1f, 1f, 1f);
             }
-            //rigidbody2D.velocity = new Vector2(h, rigidbody2D.velocity.y) * speed * Time.deltaTime;
             Vector2 newVelocity = rigidbody2D.velocity;
             newVelocity.x = h * speed * Time.deltaTime;
             rigidbody2D.velocity = newVelocity;
             animator.SetFloat("hMove", MathF.Abs(h));
-            //animator.SetFloat("hSpeed", MathF.Abs(speed) * MathF.Abs(h));
-            //AudioManager.Instance.PlaySFX("Walking");
+        }
+        else
+        {
+            animator.SetFloat("hMove", 0);
         }
         animator.SetFloat("yMove", MathF.Abs(rigidbody2D.velocity.y));
     }
 
     void jump()
     {
-        if (!isjump && onground && Input.GetKeyDown(KeyCode.Space) && jumpCooldownTimer <= 0f)
+        if (!isJumping && !isjump && onground && jumpCooldownTimer <= 0f && currentStamina >= 10) // Check for stamina
         {
-            animator.SetBool("onGround", false);
+            isJumping = true;
             AudioManager.Instance.PlaySFX("Jump");
+            animator.SetBool("onGround", false);
             jumpCooldownTimer = jumpCooldown;
+            currentStamina -= 10; // Decrease stamina for jumping
+            staminaSlider.value = currentStamina; // Update stamina slider
             StartCoroutine(PrepareJump());
         }
         if (jumpCooldownTimer > 0f)
         {
             jumpCooldownTimer -= Time.deltaTime;
         }
-
     }
 
     void WallSlide()
@@ -138,11 +155,10 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    void WallJump()
+    public void WallJump()
     {
         if (isWallSliding)
         {
-            // Determine the direction of the wall
             float wallDirection = 0f;
             if (Physics2D.Raycast(transform.position, Vector2.right, wallCheckDistance, wallLayer))
             {
@@ -153,40 +169,36 @@ public class PlayerController : MonoBehaviour
                 wallDirection = 1f; // Wall is on the left
             }
 
-            if (Input.GetKeyDown(KeyCode.Space))
+            // Update player scale to face the wall (Dont Remove This !)
+            if (wallDirection != 0)
             {
-                AudioManager.Instance.PlaySFX("Jump");
-
-                // Update player scale to face the wall
-                if (wallDirection != 0)
-                {
-                    transform.localScale = new Vector3(-wallDirection, 1f, 1f);
-                }
-
-                isWallJumping = true;
-                wallJumpDirection = wallDirection; // Use the wall direction for jumping
-                wallJumpTimer = wallJumpTime;
-
-                // Set the wall jump velocity to a constant value
-                Vector2 wallJumpVelocity = new Vector2(wallJumpDirection * wallJumpForce, jumpforce);
-                rigidbody2D.velocity = wallJumpVelocity;
-
-                CancelInvoke(nameof(StopWallJumping));
-                Invoke(nameof(StopWallJumping), wallJumpTime);
+                transform.localScale = new Vector3(-wallDirection, 1f,1f);
             }
 
+            isWallJumping = true;
+            wallJumpDirection = wallDirection; // Use the wall direction for jumping
+            wallJumpTimer = wallJumpTime;
+
+            Vector2 wallJumpVelocity = new Vector2(wallJumpDirection * wallJumpForce, jumpforce);
+            rigidbody2D.velocity = wallJumpVelocity;
+            CancelInvoke(nameof(StopWallJumping));
+            Invoke(nameof(StopWallJumping), wallJumpTime);
         }
     }
 
     void StopWallJumping()
     {
+        AudioManager.Instance.PlaySFX("Jump");
         isWallJumping = false;
     }
 
     IEnumerator PrepareJump()
     {
+        AudioManager.Instance.PlaySFX("Jump");
+        rigidbody2D.velocity = new Vector2(rigidbody2D.velocity.x, 0f);
         rigidbody2D.AddForce(new Vector2(0, jumpforce), ForceMode2D.Impulse);
-        yield return new WaitForSeconds(0.01f);        
+        yield return new WaitForSeconds(0.1f);
+        isJumping = false;
     }
 
     void isGrounded()
@@ -194,7 +206,6 @@ public class PlayerController : MonoBehaviour
         Vector2 position = transform.position;
         Vector2 direction = Vector2.down;
         float distance = 5f;
-        Debug.DrawRay(position, direction, Color.green);
         RaycastHit2D hit = Physics2D.Raycast(position, direction, distance, groundLayer);
         if (hit.collider != null)
         {
@@ -210,9 +221,21 @@ public class PlayerController : MonoBehaviour
         }
     }
 
+    void handleJump()
+    {
+        if (isWallSliding == false && onground == true)
+        {
+            jump();
+        }
+        else if (isWallSliding == true)
+        {
+            WallJump();
+        }
+    }
+
     void Dashing()
     {
-        if (canDash && Input.GetKeyDown(KeyCode.LeftShift))
+        if (canDash && currentStamina >= 20) // Check for stamina
         {
             animator.SetTrigger("isDash");
             AudioManager.Instance.PlaySFX("Dash");
@@ -228,6 +251,8 @@ public class PlayerController : MonoBehaviour
         rigidbody2D.gravityScale = 0f;
         rigidbody2D.velocity = new Vector2(-transform.localScale.x * dashingPower, 0f);
         tr.emitting = true;
+        currentStamina -= 20; // Decrease stamina for dashing
+        staminaSlider.value = currentStamina; // Update stamina slider
         yield return new WaitForSeconds(dashingTime);
         tr.emitting = false;
         rigidbody2D.gravityScale = originalGravity;
@@ -237,12 +262,50 @@ public class PlayerController : MonoBehaviour
         canDash = true;
     }
 
+    // Coroutine for stamina regeneration
+    private IEnumerator RegenerateStamina()
+    {
+        while (true)
+        {
+            if (currentStamina < maxStamina)
+            {
+                currentStamina += staminaRegenRate * Time.deltaTime;
+                currentStamina = Mathf.Min(currentStamina, maxStamina);
+                staminaSlider.value = currentStamina; // Update stamina slider
+            }
+            yield return null; // Wait for the next frame
+        }
+    }
 
+    // Coroutine for health regeneration
+    private IEnumerator RegenerateHealth()
+    {
+        while (true)
+        {
+            if (currentHealth < maxHealth)
+            {
+                currentHealth += healthRegenRate * Time.deltaTime;
+                currentHealth = Mathf.Min(currentHealth, maxHealth);
+                healthSlider.value = currentHealth; // Update health slider
+            }
+            yield return null; // Wait for the next frame
+        }
+    }
 
-    // void MaintainBackgroundPosition(){
-    //     Vector3 backgroundPosition = backgroundfollower.transform.position;
-    //     backgroundPosition = new Vector3(transform.position.x, transform.position.y);
-    //     backgroundfollower.transform.position = backgroundPosition;
-    // }
-   
+    // Method to take damage from the enemy
+    public void TakeDamage(int damage)
+    {
+        currentHealth -= damage; // Reduce health by the damage amount
+        healthSlider.value = currentHealth; // Update health slider
+        if (currentHealth <= 0)
+        {
+            Die(); // Call the Die method if health drops to 0 or below
+        }
+    }
+
+    void Die()
+    {
+        Debug.Log(gameObject.name + " has died.");
+        Destroy(gameObject); // Destroy the player game object
+    }
 }
