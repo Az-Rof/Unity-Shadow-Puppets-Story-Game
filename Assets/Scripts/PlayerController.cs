@@ -6,7 +6,7 @@ using UnityEngine.UI;
 
 public class PlayerController : MonoBehaviour
 {
-    Rigidbody2D rigidbody2D;
+    Rigidbody2D rb;
     Animator animator;
 
     // Controls
@@ -56,7 +56,7 @@ public class PlayerController : MonoBehaviour
 
     void Awake()
     {
-        rigidbody2D = GetComponent<Rigidbody2D>();
+        rb = GetComponent<Rigidbody2D>();
         animator = GetComponent<Animator>();
         tr = GetComponent<TrailRenderer>();
         currentHealth = maxHealth; // Initialize current health
@@ -79,6 +79,7 @@ public class PlayerController : MonoBehaviour
     {
         isGrounded();
         movement();
+
     }
 
     void Update()
@@ -94,7 +95,9 @@ public class PlayerController : MonoBehaviour
     {
         RaycastHit2D hitRight = Physics2D.Raycast(transform.position, Vector2.right, wallCheckDistance, wallLayer);
         RaycastHit2D hitLeft = Physics2D.Raycast(transform.position, Vector2.left, wallCheckDistance, wallLayer);
-        return hitRight.collider != null || hitLeft.collider != null;
+        bool isTouchingWall = hitRight.collider != null || hitLeft.collider != null; // Check if the player is touching a wall
+        isWallSliding = isTouchingWall; // Update the isWallSliding variable
+        return isTouchingWall; // Return the result
     }
 
     void movement()
@@ -110,16 +113,16 @@ public class PlayerController : MonoBehaviour
             {
                 transform.localScale = new Vector3(-1f, 1f, 1f);
             }
-            Vector2 newVelocity = rigidbody2D.velocity;
+            Vector2 newVelocity = rb.velocity;
             newVelocity.x = h * speed * Time.deltaTime;
-            rigidbody2D.velocity = newVelocity;
+            rb.velocity = newVelocity;
             animator.SetFloat("hMove", MathF.Abs(h));
         }
         else
         {
             animator.SetFloat("hMove", 0);
         }
-        animator.SetFloat("yMove", MathF.Abs(rigidbody2D.velocity.y));
+        animator.SetFloat("yMove", MathF.Abs(rb.velocity.y));
     }
 
     void jump()
@@ -142,10 +145,21 @@ public class PlayerController : MonoBehaviour
 
     void WallSlide()
     {
-        if (IsTouchingWall() && !onground && rigidbody2D.velocity.y < 0)
+        if (IsTouchingWall() && !onground && rb.velocity.y < 0)
         {
             isWallSliding = true;
-            rigidbody2D.velocity = new Vector2(rigidbody2D.velocity.x, Mathf.Clamp(rigidbody2D.velocity.y, -wallSlideSpeed, float.MaxValue));
+
+            // Tentukan arah tembok
+            if (Physics2D.Raycast(transform.position, Vector2.right, wallCheckDistance, wallLayer))
+            {
+                transform.localScale = new Vector3(-1f, 1f, 1f); // Hadap ke kanan
+            }
+            else if (Physics2D.Raycast(transform.position, Vector2.left, wallCheckDistance, wallLayer))
+            {
+                transform.localScale = new Vector3(1f, 1f, 1f); // Hadap ke kiri
+            }
+
+            rb.velocity = new Vector2(rb.velocity.x, Mathf.Clamp(rb.velocity.y, -wallSlideSpeed, float.MaxValue));
             animator.SetBool("wallSliding", true);
         }
         else
@@ -169,10 +183,10 @@ public class PlayerController : MonoBehaviour
                 wallDirection = 1f; // Wall is on the left
             }
 
-            // Update player scale to face the wall (Dont Remove This !)
+            // Update player scale to face the wall
             if (wallDirection != 0)
             {
-                transform.localScale = new Vector3(-wallDirection, 1f,1f);
+                transform.localScale = new Vector3(-wallDirection, 1f, 1f);
             }
 
             isWallJumping = true;
@@ -180,12 +194,11 @@ public class PlayerController : MonoBehaviour
             wallJumpTimer = wallJumpTime;
 
             Vector2 wallJumpVelocity = new Vector2(wallJumpDirection * wallJumpForce, jumpforce);
-            rigidbody2D.velocity = wallJumpVelocity;
+            rb.velocity = wallJumpVelocity;
             CancelInvoke(nameof(StopWallJumping));
             Invoke(nameof(StopWallJumping), wallJumpTime);
         }
     }
-
     void StopWallJumping()
     {
         AudioManager.Instance.PlaySFX("Jump");
@@ -195,8 +208,8 @@ public class PlayerController : MonoBehaviour
     IEnumerator PrepareJump()
     {
         AudioManager.Instance.PlaySFX("Jump");
-        rigidbody2D.velocity = new Vector2(rigidbody2D.velocity.x, 0f);
-        rigidbody2D.AddForce(new Vector2(0, jumpforce), ForceMode2D.Impulse);
+        rb.velocity = new Vector2(rb.velocity.x, 0f);
+        rb.AddForce(new Vector2(0, jumpforce), ForceMode2D.Impulse);
         yield return new WaitForSeconds(0.1f);
         isJumping = false;
     }
@@ -247,17 +260,17 @@ public class PlayerController : MonoBehaviour
     {
         canDash = false;
         isDashing = true;
-        float originalGravity = rigidbody2D.gravityScale;
-        rigidbody2D.gravityScale = 0f;
-        rigidbody2D.velocity = new Vector2(-transform.localScale.x * dashingPower, 0f);
+        float originalGravity = rb.gravityScale;
+        rb.gravityScale = 0f;
+        rb.velocity = new Vector2(-transform.localScale.x * dashingPower, 0f);
         tr.emitting = true;
         currentStamina -= 20; // Decrease stamina for dashing
         staminaSlider.value = currentStamina; // Update stamina slider
         yield return new WaitForSeconds(dashingTime);
         tr.emitting = false;
-        rigidbody2D.gravityScale = originalGravity;
+        rb.gravityScale = originalGravity;
         isDashing = false; // End the dash
-        rigidbody2D.velocity = Vector2.zero;
+        rb.velocity = Vector2.zero;
         yield return new WaitForSeconds(dashingCooldown - dashingTime);
         canDash = true;
     }

@@ -369,7 +369,7 @@ AudioSource:
   OutputAudioMixerGroup: {fileID: 0}
   m_audioClip: {fileID: 0}
   m_PlayOnAwake: 1
-  m_Volume: 0.0146801
+  m_Volume: 0.061403465
   m_Pitch: 1
   Loop: 1
   Mute: 0
@@ -955,7 +955,7 @@ MonoBehaviour:
   m_MinValue: 0
   m_MaxValue: 1
   m_WholeNumbers: 0
-  m_Value: 0.0146801
+  m_Value: 0.061403465
   m_OnValueChanged:
     m_PersistentCalls:
       m_Calls:
