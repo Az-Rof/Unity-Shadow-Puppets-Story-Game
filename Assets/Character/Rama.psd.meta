@@ -119,7 +119,7 @@ ScriptedImporter:
     edges: []
     tessellationDetail: 0
     uvTransform: {x: 489, y: 535}
-    spritePosition: {x: 103, y: 399}
+    spritePosition: {x: 211, y: 399}
   - name: L-Low-Arm
     originalName: 
     pivot: {x: 0.5, y: 0.5}
@@ -140,7 +140,7 @@ ScriptedImporter:
     edges: []
     tessellationDetail: 0
     uvTransform: {x: 4, y: 682}
-    spritePosition: {x: 109, y: 145}
+    spritePosition: {x: 299, y: 145}
   - name: L-High-Arm
     originalName: 
     pivot: {x: 0.5, y: 0.5}
@@ -161,7 +161,7 @@ ScriptedImporter:
     edges: []
     tessellationDetail: 0
     uvTransform: {x: 4, y: 866}
-    spritePosition: {x: 146, y: 314}
+    spritePosition: {x: 290, y: 314}
   - name: R-High-Arm
     originalName: 
     pivot: {x: 0.5, y: 0.5}
@@ -182,7 +182,7 @@ ScriptedImporter:
     edges: []
     tessellationDetail: 0
     uvTransform: {x: 83, y: 862}
-    spritePosition: {x: 333, y: 304}
+    spritePosition: {x: 105, y: 304}
   - name: R-Low-Arm
     originalName: 
     pivot: {x: 0.5, y: 0.5}
@@ -203,7 +203,7 @@ ScriptedImporter:
     edges: []
     tessellationDetail: 0
     uvTransform: {x: 83, y: 682}
-    spritePosition: {x: 291, y: 138}
+    spritePosition: {x: 124, y: 138}
   - name: L-Feet
     originalName: 
     pivot: {x: 0.5, y: 0.5}
@@ -224,7 +224,7 @@ ScriptedImporter:
     edges: []
     tessellationDetail: 0
     uvTransform: {x: 594, y: 737}
-    spritePosition: {x: 130, y: 85}
+    spritePosition: {x: 263, y: 85}
   - name: R-Feet
     originalName: 
     pivot: {x: 0.5, y: 0.5}
@@ -245,7 +245,7 @@ ScriptedImporter:
     edges: []
     tessellationDetail: 0
     uvTransform: {x: 489, y: 737}
-    spritePosition: {x: 258, y: 76}
+    spritePosition: {x: 124, y: 76}
   - name: Body
     originalName: 
     pivot: {x: 0.5, y: 0.5}
@@ -266,7 +266,7 @@ ScriptedImporter:
     edges: []
     tessellationDetail: 0
     uvTransform: {x: 489, y: 4}
-    spritePosition: {x: 136, y: 74}
+    spritePosition: {x: 107, y: 74}
   - name: Rectangle 1
     originalName: 
     pivot: {x: 0.5, y: 0.5}
