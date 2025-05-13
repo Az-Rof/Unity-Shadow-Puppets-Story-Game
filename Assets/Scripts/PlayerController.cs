@@ -186,7 +186,7 @@ public class PlayerController : MonoBehaviour
             // Update player scale to face the wall
             if (wallDirection != 0)
             {
-                transform.localScale = new Vector3(-wallDirection, 1f, 1f);
+                transform.localScale = new Vector3(wallDirection, 1f, 1f);
             }
 
             isWallJumping = true;
