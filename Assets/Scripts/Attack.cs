@@ -5,57 +5,41 @@ using UnityEngine;
 public class Attack : MonoBehaviour
 {
     // **Variables**
+    CharacterStats characterStats; // Reference to CharacterStats script
     Animator animator;
-    public float attackRange = 2f; // Range of the attack
-    public int damage = 10; // Damage dealt per attack
+
+    [SerializeField] float attackRange = 2f; 
+    private int damage; // Damage dealt by the attack
     public LayerMask enemyLayer; // Layer to detect enemies
-    public Transform attackPoint; // Point from where the attack originates
 
     private void Start()
     {
+        // Initialize components
         animator = GetComponent<Animator>();
+        characterStats = GetComponent<CharacterStats>();
+
+        // Initialize attack power based on character stats
+        InitiateAttack();
     }
+
+
+
     // **Update Method**
     void Update()
     {
         if (Input.GetKeyDown(KeyCode.E) && this.gameObject.tag == "Player")
         {
-            PerformAttack();
+            // PerformAttack();
         }
+        
     }
 
-    // **Attack Logic**
-    public void PerformAttack()
-    {
-        if (attackPoint == null) return;
-        animator.SetTrigger("isAttack"); // Play attack animation
-        // Detect enemies in range
-        Collider2D[] hitEnemies = Physics2D.OverlapCircleAll(attackPoint.position, attackRange, enemyLayer);
-        // Damage each enemy hit
-        foreach (Collider2D enemy in hitEnemies)
-        {
-            AudioManager.Instance.PlaySFX("Attack"); // Play attack sound effect from AudioManager instance.Play("Attack");
-            Debug.Log("Hit: " + enemy.name);
-            Health enemyHealth = enemy.GetComponent<Health>();
-            if (enemyHealth != null) enemyHealth.TakeDamage(damage); // Assuming the enemy has a Health script
-        }
-    }
 
-    // **Visualize Attack Range (Optional)**
-    private void OnDrawGizmosSelected()
-    {
-        try
-        {
-            if (attackPoint == null)
-                return;
 
-            Gizmos.color = Color.red;
-            Gizmos.DrawWireSphere(attackPoint.position, attackRange);
-        }
-        catch (System.Exception ex)
-        {
-            Debug.LogError("Error drawing gizmo: " + ex.Message);
-        }
+    // **Initialize Attack Power**
+    void InitiateAttack()
+    {
+        // Initialize attack power based on character stats
+        damage = (int)characterStats.attackPower; // Assuming attackPower is a float in CharacterStats
     }
 }
-

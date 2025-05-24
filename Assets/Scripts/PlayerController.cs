@@ -1,7 +1,10 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Unity.VisualScripting.Antlr3.Runtime.Misc;
+using UnityEditor.Rendering;
 using UnityEngine;
+using UnityEngine.TextCore.Text;
 using UnityEngine.UI;
 
 public class PlayerController : MonoBehaviour
@@ -9,12 +12,19 @@ public class PlayerController : MonoBehaviour
     Rigidbody2D rb;
     Animator animator;
 
+
+    // Character Stats
+    CharacterStats stats;
+    public CharacterStats Stats
+    {
+        get { return stats; }
+        set { stats = value; }
+    }
+
     // Controls
     public Joystick joystick;
     public Button jumpButton, dashButton, attackButton, pauseButton;
 
-    [SerializeField] float speed = 10f;
-    [SerializeField] float jumpforce = 5f;
     [SerializeField] bool onground;
     [SerializeField] bool isjump;
 
@@ -45,41 +55,41 @@ public class PlayerController : MonoBehaviour
 
     // Stats
     public Slider healthSlider, staminaSlider; // Sliders for UI representation
-    public float maxHealth = 100f; // Maximum health
-    public float maxStamina = 100f; // Maximum stamina
-    private float currentHealth; // Current health
-    private float currentStamina; // Current stamina
-
-    // Regeneration rates
-    [SerializeField] private float staminaRegenRate = 5f; // Stamina regeneration per second
-    [SerializeField] private float healthRegenRate = 0.0000000001f; // Health regeneration per second
 
     void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
         animator = GetComponent<Animator>();
         tr = GetComponent<TrailRenderer>();
-        currentHealth = maxHealth; // Initialize current health
-        currentStamina = maxStamina; // Initialize current stamina
+        stats = GetComponent<CharacterStats>();
     }
 
     void Start()
     {
+        // Import all variables from CharacterStats
+        float maxHealth = stats.maxHealth;
+        float maxStamina = stats.maxStamina;
+        float speed = stats.speed;
+        float jumpPower = stats.jumpPower;
+        float staminaRegenRate = stats.staminaRegenRate;
+        float healthRegenRate = stats.healthRegenRate;
+
+        float currentHealth = stats.currentHealth;
+        float currentStamina = stats.currentStamina;
+
         // Initialize sliders
         healthSlider.maxValue = maxHealth;
         healthSlider.value = currentHealth;
         staminaSlider.maxValue = maxStamina;
         staminaSlider.value = currentStamina;
 
-        StartCoroutine(RegenerateStamina());
-        //StartCoroutine(RegenerateHealth());
     }
 
     void FixedUpdate()
     {
         isGrounded();
         movement();
-
+        sliderUpdate();
     }
 
     void Update()
@@ -103,6 +113,7 @@ public class PlayerController : MonoBehaviour
     void movement()
     {
         float h = joystick.Horizontal;
+
         if (!isDashing && h != 0)
         {
             if (h < 0)
@@ -114,7 +125,7 @@ public class PlayerController : MonoBehaviour
                 transform.localScale = new Vector3(-1f, 1f, 1f);
             }
             Vector2 newVelocity = rb.velocity;
-            newVelocity.x = h * speed * Time.deltaTime;
+            newVelocity.x = h * stats.speed;
             rb.velocity = newVelocity;
             animator.SetFloat("hMove", MathF.Abs(h));
         }
@@ -127,14 +138,14 @@ public class PlayerController : MonoBehaviour
 
     void jump()
     {
-        if (!isJumping && !isjump && onground && jumpCooldownTimer <= 0f && currentStamina >= 10) // Check for stamina
+        if (!isJumping && !isjump && onground && jumpCooldownTimer <= 0f && stats.currentStamina >= 10) // Check for stamina
         {
             isJumping = true;
             AudioManager.Instance.PlaySFX("Jump");
             animator.SetBool("onGround", false);
             jumpCooldownTimer = jumpCooldown;
-            currentStamina -= 10; // Decrease stamina for jumping
-            staminaSlider.value = currentStamina; // Update stamina slider
+            stats.currentStamina -= 10; // Decrease stamina for jumping
+            staminaSlider.value = stats.currentStamina; // Update stamina slider
             StartCoroutine(PrepareJump());
         }
         if (jumpCooldownTimer > 0f)
@@ -193,7 +204,7 @@ public class PlayerController : MonoBehaviour
             wallJumpDirection = wallDirection; // Use the wall direction for jumping
             wallJumpTimer = wallJumpTime;
 
-            Vector2 wallJumpVelocity = new Vector2(wallJumpDirection * wallJumpForce, jumpforce);
+            Vector2 wallJumpVelocity = new Vector2(wallJumpDirection * wallJumpForce, stats.jumpPower);
             rb.velocity = wallJumpVelocity;
             CancelInvoke(nameof(StopWallJumping));
             Invoke(nameof(StopWallJumping), wallJumpTime);
@@ -209,7 +220,7 @@ public class PlayerController : MonoBehaviour
     {
         AudioManager.Instance.PlaySFX("Jump");
         rb.velocity = new Vector2(rb.velocity.x, 0f);
-        rb.AddForce(new Vector2(0, jumpforce), ForceMode2D.Impulse);
+        rb.AddForce(new Vector2(0, stats.jumpPower), ForceMode2D.Impulse);
         yield return new WaitForSeconds(0.1f);
         isJumping = false;
     }
@@ -248,7 +259,7 @@ public class PlayerController : MonoBehaviour
 
     void Dashing()
     {
-        if (canDash && currentStamina >= 20) // Check for stamina
+        if (canDash && stats.currentStamina >= 20) // Check for stamina
         {
             animator.SetTrigger("isDash");
             AudioManager.Instance.PlaySFX("Dash");
@@ -264,8 +275,8 @@ public class PlayerController : MonoBehaviour
         rb.gravityScale = 0f;
         rb.velocity = new Vector2(-transform.localScale.x * dashingPower, 0f);
         tr.emitting = true;
-        currentStamina -= 20; // Decrease stamina for dashing
-        staminaSlider.value = currentStamina; // Update stamina slider
+        stats.currentStamina -= 20; // Decrease stamina for dashing
+        staminaSlider.value = stats.currentStamina; // Update stamina slider
         yield return new WaitForSeconds(dashingTime);
         tr.emitting = false;
         rb.gravityScale = originalGravity;
@@ -275,50 +286,19 @@ public class PlayerController : MonoBehaviour
         canDash = true;
     }
 
-    // Coroutine for stamina regeneration
-    private IEnumerator RegenerateStamina()
-    {
-        while (true)
-        {
-            if (currentStamina < maxStamina)
-            {
-                currentStamina += staminaRegenRate * Time.deltaTime;
-                currentStamina = Mathf.Min(currentStamina, maxStamina);
-                staminaSlider.value = currentStamina; // Update stamina slider
-            }
-            yield return null; // Wait for the next frame
-        }
-    }
 
-    // Coroutine for health regeneration
-    private IEnumerator RegenerateHealth()
-    {
-        while (true)
-        {
-            if (currentHealth < maxHealth)
-            {
-                currentHealth += healthRegenRate * Time.deltaTime;
-                currentHealth = Mathf.Min(currentHealth, maxHealth);
-                healthSlider.value = currentHealth; // Update health slider
-            }
-            yield return null; // Wait for the next frame
-        }
-    }
 
-    // Method to take damage from the enemy
+    // Method to take damage from the enemy (implemented in CharacterStats)
+    // This method will be called when the player takes damage
     public void TakeDamage(int damage)
     {
-        currentHealth -= damage; // Reduce health by the damage amount
-        healthSlider.value = currentHealth; // Update health slider
-        if (currentHealth <= 0)
-        {
-            Die(); // Call the Die method if health drops to 0 or below
-        }
+        stats.TakeDamage(damage); // Lanjut ke karakter stats
     }
 
-    void Die()
+    void sliderUpdate()
     {
-        Debug.Log(gameObject.name + " has died.");
-        Destroy(gameObject); // Destroy the player game object
+        healthSlider.value = stats.currentHealth; // Update health slider
+        staminaSlider.value = stats.currentStamina; // Update stamina slider
     }
+    
 }
