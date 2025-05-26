@@ -144,7 +144,7 @@ public class Enemy : MonoBehaviour
     {
         if (player != null)
         {
-            float distanceToPlayer = Vector2.Distance(transform.position, player.transform.position);
+            float distanceToPlayer = Vector2.Distance(transform.position, player.transform.position) + 3f;
 
             // Check if the player is within attack range
             if (distanceToPlayer < attackRange)
