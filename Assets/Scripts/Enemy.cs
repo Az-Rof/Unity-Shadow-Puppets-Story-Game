@@ -35,7 +35,6 @@ public class Enemy : MonoBehaviour
     // Attack variables
     [Header("Combat")]
     private float lastAttackTime = 0f;
-    [SerializeField] float attackRange = 2f;
     private float lastDashTime = -10f;
     private float lastJumpTime = -10f;
     private bool isActionInProgress = false;
@@ -144,10 +143,10 @@ public class Enemy : MonoBehaviour
     {
         if (player != null)
         {
-            float distanceToPlayer = Vector2.Distance(transform.position, player.transform.position) + 3f;
+            float distanceToPlayer = Vector2.Distance(transform.position, player.transform.position);
 
             // Check if the player is within attack range
-            if (distanceToPlayer < attackRange)
+            if (distanceToPlayer < stats.attackRange)
             {
                 // Face the player
                 transform.localScale = new Vector3(
@@ -158,6 +157,7 @@ public class Enemy : MonoBehaviour
 
                 // Execute AI actions
                 AI();
+                Debug.Log(gameObject.name + " AI is running!");
             }
         }
     }
@@ -236,15 +236,24 @@ public class Enemy : MonoBehaviour
         switch (randomAction)
         {
             case 0:
-                MeleeAttack();
+                if (stats.GetActionCost("Attack") <= stats.currentStamina)
+                {
+                    MeleeAttack();
+                }
                 break;
             case 1:
-                StartCoroutine(Dash());
-                lastDashTime = currentTime;
+                if (stats.GetActionCost("Dash") <= stats.currentStamina)
+                {
+                    StartCoroutine(Dash());
+                    lastDashTime = currentTime;
+                }
                 break;
             case 2:
-                StartCoroutine(Jump());
-                lastJumpTime = currentTime;
+                if (stats.GetActionCost("Jump") <= stats.currentStamina)
+                {
+                    StartCoroutine(Jump());
+                    lastJumpTime = currentTime;
+                }
                 break;
         }
     }
@@ -267,7 +276,8 @@ public class Enemy : MonoBehaviour
 
                 playerController.TakeDamage((int)stats.attackPower); // Call the TakeDamage method on the player
                 lastAttackTime = Time.time; // Update the last attack time
-                Debug.Log(gameObject.name + " attacked the player for " + (int)stats.attackPower + " damage.");
+                                            // Debug.Log(gameObject.name + " attacked the player for " + (int)stats.attackPower + " damage.");
+                stats.TakeAction(stats.GetActionCost("Attack"));
             }
         }
     }
@@ -277,7 +287,6 @@ public class Enemy : MonoBehaviour
         isActionInProgress = true;
         Vector2 dashDirection = (player.transform.position - transform.position).normalized;
         rb.velocity = dashDirection * stats.dashPower;
-
         try
         {
             AudioManager.Instance.PlaySFX("Dash");
@@ -287,11 +296,12 @@ public class Enemy : MonoBehaviour
             Debug.LogWarning("AudioManager.Instance not found or PlaySFX method failed.");
         }
 
-        Debug.Log(gameObject.name + " is dashing towards player!");
+        // Debug.Log(gameObject.name + " is dashing towards player!");
 
         yield return new WaitForSeconds(0.3f); // Dash duration
         rb.velocity = Vector2.zero;
         isActionInProgress = false;
+        stats.TakeAction(stats.GetActionCost("Dash"));
     }
 
     IEnumerator Jump()
@@ -309,7 +319,7 @@ public class Enemy : MonoBehaviour
             Debug.LogWarning("AudioManager.Instance not found or PlaySFX method failed.");
         }
 
-        Debug.Log(gameObject.name + " is performing JUMP!");
+        // Debug.Log(gameObject.name + " is performing JUMP!");
 
         yield return new WaitForSeconds(0.5f); // Wait mid-air
         rb.velocity = new Vector2(rb.velocity.x, -stats.jumpPower); // Simulate coming down faster
@@ -317,14 +327,17 @@ public class Enemy : MonoBehaviour
         yield return new WaitForSeconds(0.3f); // Wait for landing
         rb.velocity = Vector2.zero;
         isActionInProgress = false;
+        stats.TakeAction(stats.GetActionCost("Jump"));
     }
 
     // Optional: Add visual debugging
     void OnDrawGizmosSelected()
     {
+        if (stats == null) return;
+
         // Draw attack range
         Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(transform.position, attackRange);
+        Gizmos.DrawWireSphere(transform.position, stats.attackRange);
 
         // Draw patrol waypoints if assigned
         if (waypoints != null && waypoints.Length > 0)
@@ -354,5 +367,11 @@ public class Enemy : MonoBehaviour
                 Gizmos.DrawLine(waypoints[waypoints.Length - 1].position, waypoints[0].position);
             }
         }
+    }
+    // Method to take damage from the player (implemented in CharacterStats)
+    // This method will be called when the player attacks the enemy
+    public void TakeDamage(int damage)
+    {
+        stats.TakeDamage(damage); // Lanjut ke karakter stats
     }
 }

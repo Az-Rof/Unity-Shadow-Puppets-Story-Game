@@ -13,11 +13,11 @@ public class Pause : MonoBehaviour
     // Fungsi ini digunakan untuk  pause di game
     public void pause()
     {
-        playerLivesManager = GameObject.Find("Player").GetComponent<PlayerLivesManager>();
+        playerLivesManager = GameObject.FindWithTag("Player").GetComponent<PlayerLivesManager>();
         if (playerLivesManager != null)
         {
             bool isDead = playerLivesManager.isDead;
-            Transform parentTransform = GameObject.Find("onGUI").transform;
+            Transform parentTransform = GameObject.Find("GUI").transform;
             GameObject Pause = parentTransform.Find("Pause").gameObject;
             if (Pause != null && Input.GetKeyDown(KeyCode.Escape) && Time.timeScale == 1f)
             {

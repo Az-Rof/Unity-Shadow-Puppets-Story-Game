@@ -1,8 +1,8 @@
 using UnityEngine;
 using UnityEngine.UI;
 using System.Collections;
-
-
+using System.Collections.Generic;
+using Unity.VisualScripting;
 
 public class CharacterStats : MonoBehaviour
 {
@@ -15,6 +15,7 @@ public class CharacterStats : MonoBehaviour
     public float maxHealth;
     public float maxStamina;
     public float attackPower;
+    public float attackRange;
     public float attackCooldown;
     public float defensePower;
     public float speed;
@@ -22,16 +23,26 @@ public class CharacterStats : MonoBehaviour
     public float jumpCooldown;
     public float dashPower;
     public float dashCooldown;
-    
+
 
     [SerializeField] public float healthRegenRate, staminaRegenRate;
 
-    
     // Current Stats
     [Header("CurrentStats")]
     public float currentHealth;
     public float currentStamina;
 
+    [Header("Cost Of Actions")] // Cost of actions
+    // [SerializeField] float dashCost, jumpCost, attackCost;
+    private float lastAttackTime = 0f;
+    public List<TakeActionCost> actionCosts = new List<TakeActionCost>() // List to hold action costs
+    {
+        new TakeActionCost() { ActionName = "Dash", CostValue = 10 },
+        new TakeActionCost() { ActionName = "Jump", CostValue = 10 },
+        new TakeActionCost() { ActionName = "Attack", CostValue = 10 },
+    };
+
+    // Set the Standar Action for action costs 
 
 
     void Start()
@@ -47,7 +58,7 @@ public class CharacterStats : MonoBehaviour
     {
 
     }
-    
+
     void InitiateCharacterStats()
     {
         // Inisialisasi nama & peran character
@@ -103,13 +114,47 @@ public class CharacterStats : MonoBehaviour
                 Debug.Log(gameObject.name + " has died. Game Over.");
                 Time.timeScale = 0; // Pause the game
             }
-            
+
         }
+    }
+
+
+    // Method to check if the character can perform a dash action
+    public bool CanAction()
+    {
+        foreach (TakeActionCost actionCost in actionCosts)
+        {
+            if (currentStamina <= actionCost.CostValue)
+                return false; // If current stamina is not enough for any action, return false
+        }
+        return true; // If stamina is enough for all actions, return true
+    }
+
+    public void TakeAction(float actionValue)
+    {
+        // Check if the character has enough stamina to perform the action
+        if (CanAction())
+        {
+            currentStamina -= actionValue; // Reduce stamina by the action value
+            currentStamina = Mathf.Max(currentStamina, 0); // Ensure stamina doesn't go below 0   
+        }
+    }
+
+    // Fungsi untuk mengambil cost berdasarkan nama aksi
+    public float GetActionCost(string actionName)
+    {
+        foreach (var action in actionCosts)
+        {
+            if (action.ActionName == actionName)
+                return action.CostValue;
+        }
+        return 0f; // Default jika tidak ditemukan
     }
 
     void Die()
     {
         Debug.Log(gameObject.name + " has died.");
-        Destroy(gameObject); // Destroy the game object
+        //Destroy this game object
+        Destroy(this.gameObject); // Destroy the character game object
     }
 }

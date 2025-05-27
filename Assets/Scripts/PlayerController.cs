@@ -1,9 +1,11 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using Unity.VisualScripting.Antlr3.Runtime.Misc;
 using UnityEditor.Rendering;
 using UnityEngine;
+using UnityEngine.InputSystem.Interactions;
 using UnityEngine.TextCore.Text;
 using UnityEngine.UI;
 
@@ -12,6 +14,11 @@ public class PlayerController : MonoBehaviour
     Rigidbody2D rb;
     Animator animator;
 
+    // Input System for Mobile Controls
+    InputSystem_Actions inputActions;
+
+    // Pause Menu
+    GameObject pausePanel;
 
     // Character Stats
     CharacterStats stats;
@@ -21,9 +28,8 @@ public class PlayerController : MonoBehaviour
         set { stats = value; }
     }
 
-    // Controls
-    public Joystick joystick;
-    public Button jumpButton, dashButton, attackButton, pauseButton;
+    // Player Attack Variables
+    private float lastAttackTime = 0f;
 
     [SerializeField] bool onground;
     [SerializeField] bool isjump;
@@ -62,6 +68,11 @@ public class PlayerController : MonoBehaviour
         animator = GetComponent<Animator>();
         tr = GetComponent<TrailRenderer>();
         stats = GetComponent<CharacterStats>();
+
+        // Initialize controllers and UI elements
+        getController();
+
+
     }
 
     void Start()
@@ -95,12 +106,35 @@ public class PlayerController : MonoBehaviour
     void Update()
     {
         WallSlide();
-
-        // Set Listener Button
-        jumpButton.onClick.AddListener(handleJump);
-        dashButton.onClick.AddListener(Dashing);
+        Pause();
+        if (jumpCooldownTimer > 0f)
+        {
+            jumpCooldownTimer -= Time.deltaTime;
+        }
     }
 
+    private void getController()
+    {
+        // Get the Input System
+        inputActions = new InputSystem_Actions();
+        inputActions.Player.Enable();
+
+        // Efficient way to get the actions
+        InputSystem_Actions.PlayerActions input;
+        input = inputActions.Player;
+
+        // Set up the input actions
+        input.Move.performed += ctx => movement();
+        input.Jump.performed += ctx => handleJump();
+        input.Dash.performed += ctx => Dashing();
+        input.Attack.performed += ctx => Attack();
+
+        // Add Listener to Pause Button
+        // Get the Pause instance (assuming it's a component on a GameObject
+        // Initialize pause panel
+        pausePanel = GameObject.Find("Canvas").transform.Find("GUI").Find("Pause").gameObject;
+        pausePanel.SetActive(false); // Ensure the pause panel is initially inactive
+    }
     private bool IsTouchingWall()
     {
         RaycastHit2D hitRight = Physics2D.Raycast(transform.position, Vector2.right, wallCheckDistance, wallLayer);
@@ -112,7 +146,11 @@ public class PlayerController : MonoBehaviour
 
     void movement()
     {
-        float h = joystick.Horizontal;
+        float h = Input.GetAxis("Horizontal");
+        if (inputActions != null)
+        {
+            h = inputActions.Player.Move.ReadValue<Vector2>().x; // Get horizontal movement from Input System
+        }
 
         if (!isDashing && h != 0)
         {
@@ -136,22 +174,38 @@ public class PlayerController : MonoBehaviour
         animator.SetFloat("yMove", MathF.Abs(rb.velocity.y));
     }
 
+    void Pause()
+    {
+        if (pausePanel != null && inputActions != null)
+        {
+            if (inputActions.Player.PauseGame.triggered)
+            {
+                if (pausePanel.activeSelf)
+                {
+                    pausePanel.SetActive(false);
+                    Time.timeScale = 1f; // Resume the game
+                }
+                else
+                {
+                    pausePanel.SetActive(true);
+                    Time.timeScale = 0f; // Pause the game
+                }
+            }
+        }
+    }
     void jump()
     {
-        if (!isJumping && !isjump && onground && jumpCooldownTimer <= 0f && stats.currentStamina >= 10) // Check for stamina
+        if (!isJumping && !isjump && onground && jumpCooldownTimer <= 0f && stats.GetActionCost("Jump") <= stats.currentStamina)
         {
+            stats.TakeAction(stats.GetActionCost("Jump")); // Reduce stamina for jump action
+            isGrounded(); // Check if the player is grounded before jumping
             isJumping = true;
-            AudioManager.Instance.PlaySFX("Jump");
             animator.SetBool("onGround", false);
             jumpCooldownTimer = jumpCooldown;
-            stats.currentStamina -= 10; // Decrease stamina for jumping
-            staminaSlider.value = stats.currentStamina; // Update stamina slider
             StartCoroutine(PrepareJump());
+
         }
-        if (jumpCooldownTimer > 0f)
-        {
-            jumpCooldownTimer -= Time.deltaTime;
-        }
+
     }
 
     void WallSlide()
@@ -259,8 +313,9 @@ public class PlayerController : MonoBehaviour
 
     void Dashing()
     {
-        if (canDash && stats.currentStamina >= 20) // Check for stamina
+        if (canDash && !isDashing && stats.GetActionCost("Dash") <= stats.currentStamina)
         {
+            stats.TakeAction(stats.GetActionCost("Dash"));
             animator.SetTrigger("isDash");
             AudioManager.Instance.PlaySFX("Dash");
             StartCoroutine(Dash());
@@ -275,8 +330,6 @@ public class PlayerController : MonoBehaviour
         rb.gravityScale = 0f;
         rb.velocity = new Vector2(-transform.localScale.x * dashingPower, 0f);
         tr.emitting = true;
-        stats.currentStamina -= 20; // Decrease stamina for dashing
-        staminaSlider.value = stats.currentStamina; // Update stamina slider
         yield return new WaitForSeconds(dashingTime);
         tr.emitting = false;
         rb.gravityScale = originalGravity;
@@ -285,9 +338,6 @@ public class PlayerController : MonoBehaviour
         yield return new WaitForSeconds(dashingCooldown - dashingTime);
         canDash = true;
     }
-
-
-
     // Method to take damage from the enemy (implemented in CharacterStats)
     // This method will be called when the player takes damage
     public void TakeDamage(int damage)
@@ -295,10 +345,71 @@ public class PlayerController : MonoBehaviour
         stats.TakeDamage(damage); // Lanjut ke karakter stats
     }
 
+    // Method to handle player attack
+    public void Attack()
+    {
+        if (Time.time >= lastAttackTime + stats.attackCooldown)
+        {
+            // Define the direction the player is facing
+            Vector2 attackDirection = transform.localScale.x > 0 ? Vector2.left : Vector2.right;
+
+            // Define the attack box center and size
+            Vector2 boxCenter = (Vector2)transform.position + attackDirection * (stats.attackRange / 2f);
+            Vector2 boxSize = new Vector2(stats.attackRange, 1f); // 1f is height of the line area
+
+            // Find all enemies in the attack area
+            Collider2D[] hitEnemies = Physics2D.OverlapBoxAll(boxCenter, boxSize, 0f, LayerMask.GetMask("Enemy"));
+
+            bool attacked = false;
+
+            foreach (Collider2D enemyCollider in hitEnemies)
+            {
+                Enemy enemy = enemyCollider.GetComponent<Enemy>();
+                if (enemy != null)
+                {
+                    try
+                    {
+                        AudioManager.Instance.PlaySFX("Player Attack");
+                    }
+                    catch (System.Exception)
+                    {
+                        Debug.LogWarning("AudioManager.Instance not found or PlaySFX method failed.");
+                    }
+
+                    enemy.TakeDamage((int)stats.attackPower);
+                    attacked = true;
+                    Debug.Log(gameObject.name + " attacked " + enemy.gameObject.name + " for " + (int)stats.attackPower + " damage.");
+                }
+            }
+            if (attacked)
+            {
+                lastAttackTime = Time.time;
+            }
+        }
+    }
     void sliderUpdate()
     {
         healthSlider.value = stats.currentHealth; // Update health slider
         staminaSlider.value = stats.currentStamina; // Update stamina slider
     }
-    
+    // On-Enable and On-Disable methods for Input System
+    private void OnEnable()
+    {
+        inputActions.Player.Enable();
+    }
+    private void OnDisable()
+    {
+        inputActions.Player.Disable();
+    }
+
+    // Visualize attack range in editor
+    void OnDrawGizmosSelected()
+    {
+        if (stats == null) return;
+        Gizmos.color = Color.red;
+        Vector2 attackDirection = transform.localScale.x > 0 ? Vector2.left : Vector2.right;
+        Vector2 boxCenter = (Vector2)transform.position + attackDirection * (stats.attackRange / 2f);
+        Vector2 boxSize = new Vector2(stats.attackRange, 1f); // 1f is height of the line area
+        Gizmos.DrawWireCube(boxCenter, boxSize);
+    }
 }

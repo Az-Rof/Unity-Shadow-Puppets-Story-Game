@@ -58,3 +58,6 @@ TagManager:
   - name: GrassGround
     uniqueID: 4199300535
     locked: 0
+  - name: NameTag
+    uniqueID: 890196887
+    locked: 0

@@ -35,6 +35,7 @@ public class NameTag : MonoBehaviour
         GameObject canvasObject = new GameObject("NameTagCanvas");
         Canvas canvas = canvasObject.AddComponent<Canvas>();
         canvas.renderMode = RenderMode.WorldSpace;  // Set render mode to WorldSpace
+        canvas.sortingLayerName= "NameTag"; // Set sorting layer name
         canvasObject.AddComponent<CanvasScaler>();
         canvasObject.AddComponent<GraphicRaycaster>();
         canvasObject.layer = LayerMask.NameToLayer("UI");
