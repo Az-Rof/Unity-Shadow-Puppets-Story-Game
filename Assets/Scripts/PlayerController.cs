@@ -34,23 +34,19 @@ public class PlayerController : MonoBehaviour
     [SerializeField] bool onground;
     [SerializeField] bool isjump;
 
-    [SerializeField] float jumpCooldown = 0.5f;
     [SerializeField] float jumpCooldownTimer = 0f;
     public LayerMask groundLayer;
 
     // Dashing
     private bool canDash = true;
     private bool isDashing;
-    [SerializeField] float dashingPower = 100f;
     [SerializeField] float dashingTime = 0.2f;
-    [SerializeField] float dashingCooldown = 1f;
     [SerializeField] private TrailRenderer tr;
 
     // Wall Jump
-    [SerializeField] private float wallJumpForce = 20f;
     [SerializeField] private float wallSlideSpeed = 0.3f;
     [SerializeField] private LayerMask wallLayer;
-    [SerializeField] private float wallCheckDistance = 5f;
+    [SerializeField] private float wallCheckDistance = 0.25f;
     private bool isWallSliding = false;
     private bool isWallJumping = false;
     private float wallJumpDirection = 0f;
@@ -71,28 +67,16 @@ public class PlayerController : MonoBehaviour
 
         // Initialize controllers and UI elements
         getController();
-
-
     }
 
     void Start()
     {
-        // Import all variables from CharacterStats
-        float maxHealth = stats.maxHealth;
-        float maxStamina = stats.maxStamina;
-        float speed = stats.speed;
-        float jumpPower = stats.jumpPower;
-        float staminaRegenRate = stats.staminaRegenRate;
-        float healthRegenRate = stats.healthRegenRate;
-
-        float currentHealth = stats.currentHealth;
-        float currentStamina = stats.currentStamina;
 
         // Initialize sliders
-        healthSlider.maxValue = maxHealth;
-        healthSlider.value = currentHealth;
-        staminaSlider.maxValue = maxStamina;
-        staminaSlider.value = currentStamina;
+        healthSlider.maxValue = stats.maxHealth;
+        healthSlider.value = stats.currentHealth;
+        staminaSlider.maxValue = stats.maxStamina;
+        staminaSlider.value = stats.currentStamina;
 
     }
 
@@ -156,11 +140,11 @@ public class PlayerController : MonoBehaviour
         {
             if (h < 0)
             {
-                transform.localScale = new Vector3(1f, 1f, 1f);
+                transform.localScale = new Vector3(-1f, 1f, 1f);
             }
             else if (h > 0)
             {
-                transform.localScale = new Vector3(-1f, 1f, 1f);
+                transform.localScale = new Vector3(1f, 1f, 1f);
             }
             Vector2 newVelocity = rb.velocity;
             newVelocity.x = h * stats.speed;
@@ -201,7 +185,7 @@ public class PlayerController : MonoBehaviour
             isGrounded(); // Check if the player is grounded before jumping
             isJumping = true;
             animator.SetBool("onGround", false);
-            jumpCooldownTimer = jumpCooldown;
+            jumpCooldownTimer = stats.jumpCooldown;
             StartCoroutine(PrepareJump());
 
         }
@@ -217,11 +201,11 @@ public class PlayerController : MonoBehaviour
             // Tentukan arah tembok
             if (Physics2D.Raycast(transform.position, Vector2.right, wallCheckDistance, wallLayer))
             {
-                transform.localScale = new Vector3(-1f, 1f, 1f); // Hadap ke kanan
+                transform.localScale = new Vector3(1f, 1f, 1f); // Hadap ke kanan
             }
             else if (Physics2D.Raycast(transform.position, Vector2.left, wallCheckDistance, wallLayer))
             {
-                transform.localScale = new Vector3(1f, 1f, 1f); // Hadap ke kiri
+                transform.localScale = new Vector3(-1f, 1f, 1f); // Hadap ke kiri
             }
 
             rb.velocity = new Vector2(rb.velocity.x, Mathf.Clamp(rb.velocity.y, -wallSlideSpeed, float.MaxValue));
@@ -258,7 +242,7 @@ public class PlayerController : MonoBehaviour
             wallJumpDirection = wallDirection; // Use the wall direction for jumping
             wallJumpTimer = wallJumpTime;
 
-            Vector2 wallJumpVelocity = new Vector2(wallJumpDirection * wallJumpForce, stats.jumpPower);
+            Vector2 wallJumpVelocity = new Vector2(wallJumpDirection * stats.speed, stats.jumpPower);
             rb.velocity = wallJumpVelocity;
             CancelInvoke(nameof(StopWallJumping));
             Invoke(nameof(StopWallJumping), wallJumpTime);
@@ -328,14 +312,14 @@ public class PlayerController : MonoBehaviour
         isDashing = true;
         float originalGravity = rb.gravityScale;
         rb.gravityScale = 0f;
-        rb.velocity = new Vector2(-transform.localScale.x * dashingPower, 0f);
+        rb.velocity = new Vector2(transform.localScale.x * stats.dashPower, 0f);
         tr.emitting = true;
         yield return new WaitForSeconds(dashingTime);
         tr.emitting = false;
         rb.gravityScale = originalGravity;
         isDashing = false; // End the dash
         rb.velocity = Vector2.zero;
-        yield return new WaitForSeconds(dashingCooldown - dashingTime);
+        yield return new WaitForSeconds(stats.dashCooldown - dashingTime);
         canDash = true;
     }
     // Method to take damage from the enemy (implemented in CharacterStats)
@@ -351,7 +335,7 @@ public class PlayerController : MonoBehaviour
         if (Time.time >= lastAttackTime + stats.attackCooldown)
         {
             // Define the direction the player is facing
-            Vector2 attackDirection = transform.localScale.x > 0 ? Vector2.left : Vector2.right;
+            Vector2 attackDirection = transform.localScale.x < 0 ? Vector2.left : Vector2.right;
 
             // Define the attack box center and size
             Vector2 boxCenter = (Vector2)transform.position + attackDirection * (stats.attackRange / 2f);
@@ -369,7 +353,7 @@ public class PlayerController : MonoBehaviour
                 {
                     try
                     {
-                        AudioManager.Instance.PlaySFX("Player Attack");
+                        AudioManager.Instance.PlaySFX("Attack");
                     }
                     catch (System.Exception)
                     {
@@ -378,6 +362,9 @@ public class PlayerController : MonoBehaviour
 
                     enemy.TakeDamage((int)stats.attackPower);
                     attacked = true;
+                    // Trigger attack animation
+                    animator.SetTrigger("isAttack");
+                    // Log the attack for debugging
                     Debug.Log(gameObject.name + " attacked " + enemy.gameObject.name + " for " + (int)stats.attackPower + " damage.");
                 }
             }
@@ -407,7 +394,7 @@ public class PlayerController : MonoBehaviour
     {
         if (stats == null) return;
         Gizmos.color = Color.red;
-        Vector2 attackDirection = transform.localScale.x > 0 ? Vector2.left : Vector2.right;
+        Vector2 attackDirection = transform.localScale.x < 0 ? Vector2.left : Vector2.right;
         Vector2 boxCenter = (Vector2)transform.position + attackDirection * (stats.attackRange / 2f);
         Vector2 boxSize = new Vector2(stats.attackRange, 1f); // 1f is height of the line area
         Gizmos.DrawWireCube(boxCenter, boxSize);

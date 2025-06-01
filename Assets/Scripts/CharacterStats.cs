@@ -56,7 +56,19 @@ public class CharacterStats : MonoBehaviour
 
     void Update()
     {
+        if (currentHealth <= 0)
+        {
+            if (tag != "Player")
+            {
+                Die(); // Call the Die method if health drops to 0 or below    
+            }
+            else
+            {
+                Debug.Log(gameObject.name + " has died. Game Over.");
+                Time.timeScale = 0; // Pause the game
+            }
 
+        }
     }
 
     void InitiateCharacterStats()
@@ -86,14 +98,12 @@ public class CharacterStats : MonoBehaviour
             {
                 currentStamina += staminaRegenRate / 100 * Time.deltaTime;
                 currentStamina = Mathf.Min(currentStamina, maxStamina);
-                //staminaSlider.value = currentStamina; // Update stamina slider
             }
 
             if (currentHealth < maxHealth)
             {
                 currentHealth += healthRegenRate / 100 * Time.deltaTime;
                 currentHealth = Mathf.Min(currentHealth, maxHealth);
-                //healthSlider.value = currentHealth; // Update health slider
             }
             yield return null; // Wait for the next frame
         }
@@ -102,20 +112,6 @@ public class CharacterStats : MonoBehaviour
     public void TakeDamage(int damage)
     {
         currentHealth -= (damage - defensePower); // Reduce health by the damage amount
-        //healthSlider.value = currentHealth; // Update health slider
-        if (currentHealth <= 0)
-        {
-            if (tag != "Player")
-            {
-                Die(); // Call the Die method if health drops to 0 or below    
-            }
-            else
-            {
-                Debug.Log(gameObject.name + " has died. Game Over.");
-                Time.timeScale = 0; // Pause the game
-            }
-
-        }
     }
 
 

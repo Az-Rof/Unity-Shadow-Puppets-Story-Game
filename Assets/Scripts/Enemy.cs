@@ -23,6 +23,7 @@ public class Enemy : MonoBehaviour
 
     Rigidbody2D rb;
     private TrailRenderer tr;
+    
 
     [Header("Enemy AI")]
     public float suspicionLevel;
@@ -188,7 +189,8 @@ public class Enemy : MonoBehaviour
             if (isSuspicious)
             {
                 Vector2 direction = new Vector2(lastKnownPlayerPosition.x - transform.position.x, lastKnownPlayerPosition.y - transform.position.y).normalized;
-                rb.velocity = direction * stats.speed * 1.15f;
+                Vector2 newVelocity = new Vector2(direction.x * stats.speed * 1.15f, rb.velocity.y);
+                rb.velocity = newVelocity;
                 transform.localScale = new Vector3(
                     (lastKnownPlayerPosition.x < transform.position.x) ? -1 : 1,
                     transform.localScale.y,
@@ -295,7 +297,6 @@ public class Enemy : MonoBehaviour
         {
             Debug.LogWarning("AudioManager.Instance not found or PlaySFX method failed.");
         }
-
         // Debug.Log(gameObject.name + " is dashing towards player!");
 
         yield return new WaitForSeconds(0.3f); // Dash duration
