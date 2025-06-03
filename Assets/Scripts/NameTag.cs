@@ -10,6 +10,8 @@ public class NameTag : MonoBehaviour
     // public string characterName;
     public GameObject nameTagPrefab, healthSliderPrefab; // Prefab for the name tag
     [SerializeField] float heightOffset = 6.5f; // Offset in world space (relative to character height)
+    [SerializeField] float healthSliderYOffset = 1.5f; // Offset for health slider position
+    [SerializeField] Vector2 healthSliderSize = new Vector2(10, 1); // Size of the health slider
 
     GameObject nameTagInstance;
     TextMeshProUGUI nameText;
@@ -103,10 +105,10 @@ public class NameTag : MonoBehaviour
             healthSliderRectTransform = healthSlider.GetComponent<RectTransform>();
             if (healthSliderRectTransform != null)
             {
-                healthSliderRectTransform.localPosition = new Vector3(this.transform.position.x, this.transform.position.y + heightOffset - 1.5f, this.transform.position.z); // Set position above character
+                healthSliderRectTransform.localPosition = new Vector3(this.transform.position.x, this.transform.position.y + heightOffset - healthSliderYOffset, this.transform.position.z); // Set position above character
                 healthSliderRectTransform.localScale = new Vector3(1, 1, 1); // Set scale to 1
                 healthSlider.maxValue = stats.maxHealth; // Set initial health value
-                healthSliderRectTransform.sizeDelta = new Vector2(10, 1); // Set size of the health slider
+                healthSliderRectTransform.sizeDelta = healthSliderSize; // Set size of the health slider
 
             }
             else

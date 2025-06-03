@@ -4,335 +4,503 @@ using UnityEngine;
 
 public class Enemy : MonoBehaviour
 {
-    // Patrol settings
+    #region Serialized Fields
     [Header("Patrol")]
-    public Transform[] waypoints; // Array to store patrol points
-    private int currentWaypoint = 0; // Index of the current waypoint
-    private float idleTimer = 0f; // Timer for idle behavior
-    private float idleDuration = 3f; // Duration of idle time
-    public bool isIdle = true; // Status of whether the enemy is idle
-    private GameObject player; // Reference to the player object
-
-    // Importing character stats
-    CharacterStats stats;
-    public CharacterStats CharacterStats
-    {
-        get { return stats; }
-        set { stats = value; }
-    }
-
-    Rigidbody2D rb;
-    private TrailRenderer tr;
+    [SerializeField] private Transform[] waypoints;
+    [SerializeField] private float idleDuration = 3f;
     
-
     [Header("Enemy AI")]
-    public float suspicionLevel;
-    public bool isSuspicious;
-    private bool wasSuspicious = false;
-    public float suspicionThreshold = 3f;
-    public BoxCollider2D suspicionZone;
-    Vector2 lastKnownPlayerPosition;
-
-    // Attack variables
+    [SerializeField] private float suspicionThreshold = 3f;
+    [SerializeField] private BoxCollider2D suspicionZone;
+    
     [Header("Combat")]
+    [SerializeField] private LayerMask playerLayerMask = -1;
+    #endregion
+
+    #region Private Fields
+    // Core Components
+    private CharacterStats stats;
+    private Rigidbody2D rb;
+    private TrailRenderer tr;
+    private Transform playerTransform;
+    private PlayerController playerController;
+
+    // Patrol State
+    private int currentWaypoint = 0;
+    private float idleTimer = 0f;
+    private bool isIdle = true;
+
+    // AI State
+    private EnemyState currentState = EnemyState.Patrolling;
+    private float suspicionLevel = 0f;
+    private bool isSuspicious = false;
+    private bool wasSuspicious = false;
+    private Vector2 lastKnownPlayerPosition;
+
+    // Combat State
     private float lastAttackTime = 0f;
     private float lastDashTime = -10f;
     private float lastJumpTime = -10f;
     private bool isActionInProgress = false;
 
-    void getStats()
-    {
-        stats = GetComponent<CharacterStats>();
-        if (tr != null)
-        {
-            tr = GetComponent<TrailRenderer>();
-        }
+    // Cached Values
+    private Vector3 originalScale;
+    private WaitForSeconds dashDuration;
+    private WaitForSeconds jumpMidAir;
+    private WaitForSeconds jumpLanding;
 
-        if (stats == null)
-        {
-            Debug.LogError("CharacterStats component not found on this GameObject.");
-        }
+    // Constants
+    private const float WAYPOINT_REACH_DISTANCE = 0.1f;
+    private const float SUSPICION_MOVE_SPEED_MULTIPLIER = 1.15f;
+    private const float DASH_DURATION = 0.3f;
+    private const float JUMP_MID_AIR_TIME = 0.5f;
+    private const float JUMP_LANDING_TIME = 0.3f;
+    #endregion
+
+    #region Enums
+    public enum EnemyState
+    {
+        Patrolling,
+        Suspicious,
+        Combat,
+        ActionInProgress
     }
 
-    void Awake()
+    private enum CombatAction
+    {
+        Attack = 0,
+        Dash = 1,
+        Jump = 2
+    }
+    #endregion
+
+    #region Properties
+    public CharacterStats Stats
+    {
+        get => stats;
+        set => stats = value;
+    }
+
+    public bool IsActionInProgress => isActionInProgress;
+    public EnemyState CurrentState => currentState;
+    #endregion
+
+    #region Unity Lifecycle
+    private void Awake()
+    {
+        InitializeComponents();
+        CacheWaitForSeconds();
+    }
+
+    private void Start()
+    {
+        InitializeEnemy();
+        ValidateSetup();
+    }
+
+    private void Update()
+    {
+        if (!EnsurePlayerReference()) return;
+
+        UpdateStateMachine();
+    }
+
+    private void OnDrawGizmosSelected()
+    {
+        DrawDebugGizmos();
+    }
+    #endregion
+
+    #region Initialization
+    private void InitializeComponents()
     {
         rb = GetComponent<Rigidbody2D>();
+        stats = GetComponent<CharacterStats>();
+        tr = GetComponent<TrailRenderer>();
+        
+        if (suspicionZone == null)
+            suspicionZone = GetComponent<BoxCollider2D>();
+
+        originalScale = transform.localScale;
     }
 
-    void Start()
+    private void CacheWaitForSeconds()
     {
-        // Initialize CharacterStats
-        getStats();
-        player = GameObject.FindGameObjectWithTag("Player"); // Find the player object
+        dashDuration = new WaitForSeconds(DASH_DURATION);
+        jumpMidAir = new WaitForSeconds(JUMP_MID_AIR_TIME);
+        jumpLanding = new WaitForSeconds(JUMP_LANDING_TIME);
+    }
+
+    private void InitializeEnemy()
+    {
+        FindPlayerReference();
+        currentState = waypoints.Length > 0 ? EnemyState.Patrolling : EnemyState.Combat;
+    }
+
+    private void ValidateSetup()
+    {
+        if (stats == null)
+            Debug.LogError($"{name}: CharacterStats component not found!");
 
         if (waypoints.Length == 0)
-        {
-            Debug.LogWarning(gameObject.name + ": No waypoints assigned for patrol!");
-        }
+            Debug.LogWarning($"{name}: No waypoints assigned for patrol!");
 
         if (suspicionZone == null)
-        {
-            suspicionZone = GetComponent<BoxCollider2D>();
-            if (suspicionZone == null)
-            {
-                Debug.LogError(gameObject.name + ": No suspicion zone assigned and no BoxCollider2D found!");
-            }
-        }
+            Debug.LogError($"{name}: No suspicion zone assigned and no BoxCollider2D found!");
     }
+    #endregion
 
-    void Update()
+    #region Player Reference Management
+    private bool EnsurePlayerReference()
     {
-        if (player == null)
+        if (playerTransform == null)
         {
-            player = GameObject.FindGameObjectWithTag("Player");
-            if (player == null) return;
+            FindPlayerReference();
         }
-
-        if (!isActionInProgress)
-        {
-            Sus();
-            CheckForPlayer();
-        }
+        return playerTransform != null;
     }
 
-    void Patrol()
+    private void FindPlayerReference()
+    {
+        GameObject playerObject = GameObject.FindGameObjectWithTag("Player");
+        if (playerObject != null)
+        {
+            playerTransform = playerObject.transform;
+            playerController = playerObject.GetComponent<PlayerController>();
+        }
+    }
+    #endregion
+
+    #region State Machine
+    private void UpdateStateMachine()
+    {
+        switch (currentState)
+        {
+            case EnemyState.Patrolling:
+                HandlePatrolling();
+                break;
+            case EnemyState.Suspicious:
+                HandleSuspicious();
+                break;
+            case EnemyState.Combat:
+                HandleCombat();
+                break;
+            case EnemyState.ActionInProgress:
+                // Wait for action to complete
+                break;
+        }
+
+        UpdateSuspicion();
+        CheckForStateTransitions();
+    }
+
+    private void HandlePatrolling()
     {
         if (waypoints.Length == 0) return;
 
         if (isIdle)
         {
-            idleTimer += Time.deltaTime; // Increment idle timer
-
-            // If idle duration has been reached
-            if (idleTimer >= idleDuration)
-            {
-                isIdle = false; // Set enemy to not idle
-                idleTimer = 0f; // Reset idle timer
-            }
+            UpdateIdleTimer();
         }
         else
         {
-            // Get the target position of the current waypoint
-            Vector2 targetPosition = waypoints[currentWaypoint].position;
-
-            // Move the enemy towards the target position
-            transform.position = Vector2.MoveTowards(transform.position, targetPosition, stats.speed * Time.deltaTime);
-
-            // Flip based on movement direction
-            transform.localScale = new Vector3(
-                 (targetPosition.x < transform.position.x) ? -1 : 1,
-                 transform.localScale.y,
-                 transform.localScale.z
-             );
-
-            // If the enemy has reached the target position
-            if (Vector2.Distance(transform.position, targetPosition) < 0.1f)
-            {
-                isIdle = true; // Set enemy to idle
-                currentWaypoint++; // Move to the next waypoint
-
-                // If the last waypoint has been reached, go back to the first
-                if (currentWaypoint >= waypoints.Length)
-                {
-                    currentWaypoint = 0;
-                }
-            }
+            MoveToWaypoint();
         }
     }
 
-    void CheckForPlayer()
+    private void HandleSuspicious()
     {
-        if (player != null)
+        MoveToLastKnownPosition();
+    }
+
+    private void HandleCombat()
+    {
+        FacePlayer();
+        ExecuteAI();
+    }
+
+    private void CheckForStateTransitions()
+    {
+        if (isActionInProgress)
         {
-            float distanceToPlayer = Vector2.Distance(transform.position, player.transform.position);
+            currentState = EnemyState.ActionInProgress;
+            return;
+        }
 
-            // Check if the player is within attack range
-            if (distanceToPlayer < stats.attackRange)
+        float distanceToPlayer = GetDistanceToPlayer();
+
+        // Transition to combat if player is in attack range
+        if (distanceToPlayer <= stats.attackRange)
+        {
+            currentState = EnemyState.Combat;
+        }
+        // Transition to suspicious if suspicion threshold is met
+        else if (isSuspicious)
+        {
+            currentState = EnemyState.Suspicious;
+        }
+        // Return to patrolling
+        else
+        {
+            currentState = EnemyState.Patrolling;
+            
+            // Reset waypoint if just became unsuspicious
+            if (wasSuspicious && waypoints.Length > 0)
             {
-                // Face the player
-                transform.localScale = new Vector3(
-                    (player.transform.position.x < transform.position.x) ? -1 : 1,
-                    transform.localScale.y,
-                    transform.localScale.z
-                );
-
-                // Execute AI actions
-                AI();
-                Debug.Log(gameObject.name + " AI is running!");
+                currentWaypoint = Random.Range(0, waypoints.Length);
             }
         }
     }
+    #endregion
 
-    void Sus()
+    #region Patrol Behavior
+    private void UpdateIdleTimer()
     {
-        if (player != null)
+        idleTimer += Time.deltaTime;
+        if (idleTimer >= idleDuration)
         {
-            // Increase suspicion level if player is in the suspicion zone
-            if (suspicionZone.bounds.Contains(player.transform.position))
-            {
-                suspicionLevel += Time.deltaTime;
-                lastKnownPlayerPosition = player.transform.position;
-            }
-            else
-            {
-                // Decrease suspicion level if player is not in the suspicion zone
-                suspicionLevel -= Time.deltaTime;
-            }
-
-            // Clamp suspicion level between 0 and suspicionThreshold
-            suspicionLevel = Mathf.Clamp(suspicionLevel, 0, suspicionThreshold);
-
-            // NPC becomes suspicious if suspicion level reaches the threshold
-            isSuspicious = suspicionLevel >= suspicionThreshold;
-
-            // If NPC is suspicious, move to the last known player position
-            if (isSuspicious)
-            {
-                Vector2 direction = new Vector2(lastKnownPlayerPosition.x - transform.position.x, lastKnownPlayerPosition.y - transform.position.y).normalized;
-                Vector2 newVelocity = new Vector2(direction.x * stats.speed * 1.15f, rb.velocity.y);
-                rb.velocity = newVelocity;
-                transform.localScale = new Vector3(
-                    (lastKnownPlayerPosition.x < transform.position.x) ? -1 : 1,
-                    transform.localScale.y,
-                    transform.localScale.z
-                );
-            }
-            else
-            {
-                if (!isActionInProgress)
-                {
-                    if (wasSuspicious && waypoints.Length > 0)
-                    {
-                        currentWaypoint = Random.Range(0, waypoints.Length);
-                    }
-                    Patrol();
-                }
-            }
+            isIdle = false;
+            idleTimer = 0f;
         }
+    }
+
+    private void MoveToWaypoint()
+    {
+        Vector2 targetPosition = waypoints[currentWaypoint].position;
+        
+        // Move towards waypoint
+        transform.position = Vector2.MoveTowards(
+            transform.position, 
+            targetPosition, 
+            stats.speed * Time.deltaTime
+        );
+
+        // Face movement direction
+        FaceDirection(targetPosition.x - transform.position.x);
+
+        // Check if reached waypoint
+        if (Vector2.Distance(transform.position, targetPosition) < WAYPOINT_REACH_DISTANCE)
+        {
+            ReachWaypoint();
+        }
+    }
+
+    private void ReachWaypoint()
+    {
+        isIdle = true;
+        currentWaypoint = (currentWaypoint + 1) % waypoints.Length;
+    }
+    #endregion
+
+    #region Suspicion System
+    private void UpdateSuspicion()
+    {
+        if (playerTransform == null) return;
+
+        bool playerInZone = IsPlayerInSuspicionZone();
+
+        if (playerInZone)
+        {
+            suspicionLevel += Time.deltaTime;
+            lastKnownPlayerPosition = playerTransform.position;
+        }
+        else
+        {
+            suspicionLevel -= Time.deltaTime;
+        }
+
+        suspicionLevel = Mathf.Clamp(suspicionLevel, 0, suspicionThreshold);
+        
         wasSuspicious = isSuspicious;
+        isSuspicious = suspicionLevel >= suspicionThreshold;
     }
 
-    void AI()
+    private bool IsPlayerInSuspicionZone()
+    {
+        return suspicionZone != null && 
+               suspicionZone.bounds.Contains(playerTransform.position);
+    }
+
+    private void MoveToLastKnownPosition()
+    {
+        Vector2 direction = (lastKnownPlayerPosition - (Vector2)transform.position).normalized;
+        Vector2 newVelocity = new Vector2(
+            direction.x * stats.speed * SUSPICION_MOVE_SPEED_MULTIPLIER, 
+            rb.velocity.y
+        );
+        
+        rb.velocity = newVelocity;
+        FaceDirection(direction.x);
+    }
+    #endregion
+
+    #region Combat System
+    private void ExecuteAI()
     {
         if (isActionInProgress) return;
 
-        float currentTime = Time.time;
-        bool canDash = currentTime >= lastDashTime + stats.dashCooldown;
-        bool canJump = currentTime >= lastJumpTime + stats.jumpCooldown;
+        List<CombatAction> availableActions = GetAvailableActions();
+        if (availableActions.Count == 0) return;
 
-        // Build a list of available actions
-        List<int> availableActions = new List<int>();
+        CombatAction selectedAction = availableActions[Random.Range(0, availableActions.Count)];
+        ExecuteAction(selectedAction);
+    }
+
+    private List<CombatAction> GetAvailableActions()
+    {
+        List<CombatAction> actions = new List<CombatAction>();
+        float currentTime = Time.time;
 
         // Melee attack is always available
-        availableActions.Add(0);
+        if (stats.GetActionCost("Attack") <= stats.currentStamina)
+            actions.Add(CombatAction.Attack);
 
-        // Add dash if it's available
-        if (canDash) availableActions.Add(1);
+        // Dash if cooldown is ready
+        if (currentTime >= lastDashTime + stats.dashCooldown && 
+            stats.GetActionCost("Dash") <= stats.currentStamina)
+            actions.Add(CombatAction.Dash);
 
-        // Add jump if it's available
-        if (canJump) availableActions.Add(2);
+        // Jump if cooldown is ready
+        if (currentTime >= lastJumpTime + stats.jumpCooldown && 
+            stats.GetActionCost("Jump") <= stats.currentStamina)
+            actions.Add(CombatAction.Jump);
 
-        // Choose a random action from available ones
-        int randomAction = availableActions[Random.Range(0, availableActions.Count)];
-
-        switch (randomAction)
-        {
-            case 0:
-                if (stats.GetActionCost("Attack") <= stats.currentStamina)
-                {
-                    MeleeAttack();
-                }
-                break;
-            case 1:
-                if (stats.GetActionCost("Dash") <= stats.currentStamina)
-                {
-                    StartCoroutine(Dash());
-                    lastDashTime = currentTime;
-                }
-                break;
-            case 2:
-                if (stats.GetActionCost("Jump") <= stats.currentStamina)
-                {
-                    StartCoroutine(Jump());
-                    lastJumpTime = currentTime;
-                }
-                break;
-        }
+        return actions;
     }
-    void MeleeAttack()
+
+    private void ExecuteAction(CombatAction action)
     {
-        // Check if enough time has passed since the last attack
-        if (Time.time >= lastAttackTime + stats.attackCooldown)
+        switch (action)
         {
-            PlayerController playerController = player.GetComponent<PlayerController>();
-            if (playerController != null)
-            {
-                try
-                {
-                    AudioManager.Instance.PlaySFX("AttackedPlayer");
-                }
-                catch (System.Exception)
-                {
-                    Debug.LogWarning("AudioManager.Instance not found or PlaySFX method failed.");
-                }
-
-                playerController.TakeDamage((int)stats.attackPower); // Call the TakeDamage method on the player
-                lastAttackTime = Time.time; // Update the last attack time
-                                            // Debug.Log(gameObject.name + " attacked the player for " + (int)stats.attackPower + " damage.");
-                stats.TakeAction(stats.GetActionCost("Attack"));
-            }
+            case CombatAction.Attack:
+                MeleeAttack();
+                break;
+            case CombatAction.Dash:
+                StartCoroutine(PerformDash());
+                lastDashTime = Time.time;
+                break;
+            case CombatAction.Jump:
+                StartCoroutine(PerformJump());
+                lastJumpTime = Time.time;
+                break;
         }
     }
 
-    IEnumerator Dash()
+    private void MeleeAttack()
+    {
+        if (Time.time < lastAttackTime + stats.attackCooldown) return;
+        if (playerController == null) return;
+
+        PlaySFX("AttackedPlayer");
+        playerController.TakeDamage((int)stats.attackPower);
+        
+        lastAttackTime = Time.time;
+        stats.TakeAction(stats.GetActionCost("Attack"));
+    }
+
+    private IEnumerator PerformDash()
     {
         isActionInProgress = true;
-        Vector2 dashDirection = (player.transform.position - transform.position).normalized;
+        
+        Vector2 dashDirection = GetDirectionToPlayer();
         rb.velocity = dashDirection * stats.dashPower;
-        try
-        {
-            AudioManager.Instance.PlaySFX("Dash");
-        }
-        catch (System.Exception)
-        {
-            Debug.LogWarning("AudioManager.Instance not found or PlaySFX method failed.");
-        }
-        // Debug.Log(gameObject.name + " is dashing towards player!");
-
-        yield return new WaitForSeconds(0.3f); // Dash duration
+        
+        PlaySFX("Dash");
+        
+        yield return dashDuration;
+        
         rb.velocity = Vector2.zero;
-        isActionInProgress = false;
         stats.TakeAction(stats.GetActionCost("Dash"));
+        isActionInProgress = false;
     }
 
-    IEnumerator Jump()
+    private IEnumerator PerformJump()
     {
         isActionInProgress = true;
-        Vector2 jumpDirection = new Vector2((player.transform.position.x - transform.position.x), 1).normalized;
+        
+        Vector2 jumpDirection = new Vector2(GetDirectionToPlayer().x, 1).normalized;
         rb.velocity = new Vector2(jumpDirection.x * stats.speed, stats.jumpPower);
-
-        try
-        {
-            AudioManager.Instance.PlaySFX("Jump");
-        }
-        catch (System.Exception)
-        {
-            Debug.LogWarning("AudioManager.Instance not found or PlaySFX method failed.");
-        }
-
-        // Debug.Log(gameObject.name + " is performing JUMP!");
-
-        yield return new WaitForSeconds(0.5f); // Wait mid-air
-        rb.velocity = new Vector2(rb.velocity.x, -stats.jumpPower); // Simulate coming down faster
-
-        yield return new WaitForSeconds(0.3f); // Wait for landing
+        
+        PlaySFX("Jump");
+        
+        yield return jumpMidAir;
+        
+        rb.velocity = new Vector2(rb.velocity.x, -stats.jumpPower);
+        
+        yield return jumpLanding;
+        
         rb.velocity = Vector2.zero;
-        isActionInProgress = false;
         stats.TakeAction(stats.GetActionCost("Jump"));
+        isActionInProgress = false;
+    }
+    #endregion
+
+    #region Utility Methods
+    private float GetDistanceToPlayer()
+    {
+        return playerTransform != null ? 
+               Vector2.Distance(transform.position, playerTransform.position) : 
+               float.MaxValue;
     }
 
-    // Optional: Add visual debugging
-    void OnDrawGizmosSelected()
+    private Vector2 GetDirectionToPlayer()
+    {
+        return playerTransform != null ? 
+               (playerTransform.position - transform.position).normalized : 
+               Vector2.zero;
+    }
+
+    private void FacePlayer()
+    {
+        if (playerTransform != null)
+        {
+            FaceDirection(playerTransform.position.x - transform.position.x);
+        }
+    }
+
+    private void FaceDirection(float directionX)
+    {
+        float scaleX = directionX < 0 ? -1 : 1;
+        transform.localScale = new Vector3(
+            scaleX * Mathf.Abs(originalScale.x),
+            originalScale.y,
+            originalScale.z
+        );
+    }
+
+    private void PlaySFX(string sfxName)
+    {
+        try
+        {
+            AudioManager.Instance?.PlaySFX(sfxName);
+        }
+        catch (System.Exception ex)
+        {
+            Debug.LogWarning($"Failed to play SFX '{sfxName}': {ex.Message}");
+        }
+    }
+    #endregion
+
+    #region Public Methods
+    public void TakeDamage(int damage)
+    {
+        stats?.TakeDamage(damage);
+    }
+
+    public void SetWaypoints(Transform[] newWaypoints)
+    {
+        waypoints = newWaypoints;
+        currentWaypoint = 0;
+    }
+
+    public void SetSuspicionZone(BoxCollider2D newZone)
+    {
+        suspicionZone = newZone;
+    }
+    #endregion
+
+    #region Debug Visualization
+    private void DrawDebugGizmos()
     {
         if (stats == null) return;
 
@@ -340,39 +508,52 @@ public class Enemy : MonoBehaviour
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(transform.position, stats.attackRange);
 
-        // Draw patrol waypoints if assigned
-        if (waypoints != null && waypoints.Length > 0)
+        // Draw patrol waypoints
+        DrawWaypointGizmos();
+
+        // Draw suspicion zone
+        if (suspicionZone != null)
         {
-            Gizmos.color = Color.blue;
-            foreach (Transform waypoint in waypoints)
-            {
-                if (waypoint != null)
-                {
-                    Gizmos.DrawSphere(waypoint.position, 0.2f);
-                }
-            }
+            Gizmos.color = Color.yellow;
+            Gizmos.DrawWireCube(suspicionZone.bounds.center, suspicionZone.bounds.size);
+        }
 
-            // Draw lines between waypoints
-            Gizmos.color = Color.cyan;
-            for (int i = 0; i < waypoints.Length - 1; i++)
-            {
-                if (waypoints[i] != null && waypoints[i + 1] != null)
-                {
-                    Gizmos.DrawLine(waypoints[i].position, waypoints[i + 1].position);
-                }
-            }
+        // Draw current state
+        DrawStateGizmo();
+    }
 
-            // Close the loop
-            if (waypoints.Length > 1 && waypoints[0] != null && waypoints[waypoints.Length - 1] != null)
+    private void DrawWaypointGizmos()
+    {
+        if (waypoints == null || waypoints.Length == 0) return;
+
+        Gizmos.color = Color.blue;
+        foreach (Transform waypoint in waypoints)
+        {
+            if (waypoint != null)
             {
-                Gizmos.DrawLine(waypoints[waypoints.Length - 1].position, waypoints[0].position);
+                Gizmos.DrawSphere(waypoint.position, 0.2f);
+            }
+        }
+
+        // Draw patrol path
+        Gizmos.color = Color.cyan;
+        for (int i = 0; i < waypoints.Length; i++)
+        {
+            int nextIndex = (i + 1) % waypoints.Length;
+            if (waypoints[i] != null && waypoints[nextIndex] != null)
+            {
+                Gizmos.DrawLine(waypoints[i].position, waypoints[nextIndex].position);
             }
         }
     }
-    // Method to take damage from the player (implemented in CharacterStats)
-    // This method will be called when the player attacks the enemy
-    public void TakeDamage(int damage)
+
+    private void DrawStateGizmo()
     {
-        stats.TakeDamage(damage); // Lanjut ke karakter stats
+        Vector3 textPosition = transform.position + Vector3.up * 2f;
+        
+        #if UNITY_EDITOR
+        UnityEditor.Handles.Label(textPosition, $"State: {currentState}\nSuspicion: {suspicionLevel:F1}");
+        #endif
     }
+    #endregion
 }

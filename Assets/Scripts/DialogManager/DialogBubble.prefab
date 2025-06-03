@@ -90,9 +90,23 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   target: {fileID: 0}
-  offset: {x: 0, y: 2, z: 0}
+  preferredOffset: {x: 0, y: 10, z: 0}
+  minDistanceFromCharacter: 2
+  obstacleLayerMask:
+    serializedVersion: 2
+    m_Bits: 1537
+  enableSmartPositioning: 1
+  characterBoundsCheckRadius: 1.5
+  fallbackPositions:
+  - {x: 0, y: 3, z: 0}
+  - {x: 2, y: 2, z: 0}
+  - {x: -2, y: 2, z: 0}
+  - {x: 2, y: 0, z: 0}
+  - {x: -2, y: 0, z: 0}
+  - {x: 0, y: -1, z: 0}
   dialogText: {fileID: 5103954343503741664}
   parentCanvas: {fileID: 0}
+  bubbleBackground: {fileID: 0}
   typewriterSpeed: 0.05
   appearCurve:
     serializedVersion: 2
@@ -121,6 +135,14 @@ MonoBehaviour:
   appearDuration: 0.5
   enableShake: 0
   shakeIntensity: 0.1
+  enableBounce: 1
+  bounceHeight: 0.2
+  bounceSpeed: 2
+  enableAdaptiveSizing: 1
+  minBubbleSize: {x: 100, y: 50}
+  maxBubbleSize: {x: 400, y: 200}
+  paddingX: 20
+  paddingY: 15
 --- !u!1 &4557040748969254113
 GameObject:
   m_ObjectHideFlags: 0
@@ -213,8 +235,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 30
-  m_fontSizeBase: 30
+  m_fontSize: 28
+  m_fontSizeBase: 28
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18

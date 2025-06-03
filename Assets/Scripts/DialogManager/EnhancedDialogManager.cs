@@ -14,9 +14,14 @@ public class EnhancedDialogManager : MonoBehaviour
     public float typewriterSpeed = 0.05f;
     public bool autoAdvance = true;
     
-    [Header("Input Settings")]
-    public KeyCode skipKey = KeyCode.Space;
-    public KeyCode fastForwardKey = KeyCode.LeftShift;
+    [Header("Bubble Management")]
+    public bool allowMultipleBubbles = false;
+    public int maxSimultaneousBubbles = 3;
+    public bool adaptBubbleToCharacter = true;
+    
+    [Header("Character Detection")]
+    public LayerMask characterLayer = 1;
+    public float characterDetectionRadius = 2f;
     
     [Header("Audio")]
     public AudioSource audioSource;
@@ -27,11 +32,12 @@ public class EnhancedDialogManager : MonoBehaviour
     public UnityEvent OnDialogStart;
     public UnityEvent OnDialogComplete;
     public UnityEvent<int> OnDialogLineChanged;
+    public UnityEvent<Transform> OnSpeakerChanged;
     
     // Private variables
     private int currentLineIndex = 0;
-    private GameObject currentBubble;
-    private EnhancedDialogBubble currentBubbleScript;
+    private List<GameObject> activeBubbles = new List<GameObject>();
+    private Dictionary<Transform, GameObject> speakerBubbles = new Dictionary<Transform, GameObject>();
     private bool isDialogActive = false;
     private bool isTyping = false;
     private bool canAdvance = true;
@@ -45,42 +51,56 @@ public class EnhancedDialogManager : MonoBehaviour
     
     void Update()
     {
-        if (isDialogActive)
+        if (isDialogActive && adaptBubbleToCharacter)
         {
-            HandleInput();
+            UpdateBubblePositions();
         }
     }
     
-    void HandleInput()
+    void UpdateBubblePositions()
     {
-        // Skip/Advance dialog
-        if (Input.GetKeyDown(skipKey))
+        // Update positions of all active bubbles to avoid overlapping
+        foreach (var bubble in activeBubbles)
         {
-            if (isTyping)
+            if (bubble != null)
             {
-                // Complete current typing immediately
-                CompleteCurrentTyping();
-            }
-            else if (canAdvance)
-            {
-                // Advance to next line
-                AdvanceDialog();
+                EnhancedDialogBubble bubbleScript = bubble.GetComponent<EnhancedDialogBubble>();
+                if (bubbleScript != null && bubbleScript.target != null)
+                {
+                    // Check for nearby characters and adjust positioning
+                    AdjustBubbleForNearbyCharacters(bubbleScript);
+                }
             }
         }
+    }
+    
+    void AdjustBubbleForNearbyCharacters(EnhancedDialogBubble bubble)
+    {
+        if (bubble.target == null) return;
         
-        // Fast forward typing
-        if (Input.GetKey(fastForwardKey) && isTyping)
+        // Find nearby characters
+        Collider[] nearbyCharacters = Physics.OverlapSphere(
+            bubble.target.position, 
+            characterDetectionRadius, 
+            characterLayer
+        );
+        
+        // If there are multiple characters nearby, adjust positioning
+        if (nearbyCharacters.Length > 1)
         {
-            // Increase typing speed temporarily
-            if (currentBubbleScript != null)
+            // Enable smart positioning for crowded areas
+            bubble.SetSmartPositioning(true);
+            
+            // Add custom fallback positions based on nearby characters
+            foreach (Collider character in nearbyCharacters)
             {
-                currentBubbleScript.typewriterSpeed = typewriterSpeed * 0.1f;
+                if (character.transform != bubble.target)
+                {
+                    Vector3 avoidanceOffset = (bubble.target.position - character.transform.position).normalized * 2f;
+                    avoidanceOffset.y = 2f; // Keep it elevated
+                    bubble.AddCustomFallbackPosition(avoidanceOffset);
+                }
             }
-        }
-        else if (currentBubbleScript != null)
-        {
-            // Reset typing speed
-            currentBubbleScript.typewriterSpeed = typewriterSpeed;
         }
     }
     
@@ -106,13 +126,24 @@ public class EnhancedDialogManager : MonoBehaviour
             StopCoroutine(dialogCoroutine);
         }
         
-        if (currentBubble != null)
-        {
-            Destroy(currentBubble);
-        }
+        ClearAllBubbles();
         
         isDialogActive = false;
         OnDialogComplete?.Invoke();
+    }
+    
+    void ClearAllBubbles()
+    {
+        foreach (var bubble in activeBubbles)
+        {
+            if (bubble != null)
+            {
+                StartCoroutine(HideBubbleSmooth(bubble));
+            }
+        }
+        
+        activeBubbles.Clear();
+        speakerBubbles.Clear();
     }
     
     public void AdvanceDialog()
@@ -160,7 +191,7 @@ public class EnhancedDialogManager : MonoBehaviour
             {
                 // Wait for manual advance
                 yield return new WaitUntil(() => !canAdvance);
-                yield return new WaitForSeconds(0.1f); // Small buffer
+                yield return new WaitForSeconds(0.1f);
                 canAdvance = true;
             }
         }
@@ -172,65 +203,130 @@ public class EnhancedDialogManager : MonoBehaviour
     {
         EnhancedDialogLine line = dialogLines[currentLineIndex];
         
-        // Notify line change
-        OnDialogLineChanged?.Invoke(currentLineIndex);
-        
-        // Remove previous bubble
-        if (currentBubble != null)
+        if (!line.IsValid())
         {
-            yield return StartCoroutine(HideBubble(currentBubble));
+            Debug.LogError($"Invalid dialog line at index {currentLineIndex}");
+            yield break;
         }
         
-        // Create new bubble
-        yield return StartCoroutine(CreateBubble(line));
+        // Notify line change
+        OnDialogLineChanged?.Invoke(currentLineIndex);
+        OnSpeakerChanged?.Invoke(line.speakerTarget);
+        
+        // Handle bubble management based on settings
+        yield return StartCoroutine(ManageBubbles(line));
         
         // Show dialog
         yield return StartCoroutine(ShowDialog(line));
     }
     
-    IEnumerator ShowNextLine()
+    IEnumerator ManageBubbles(EnhancedDialogLine line)
     {
-        yield return StartCoroutine(ShowCurrentLine());
-        canAdvance = true;
+        if (allowMultipleBubbles)
+        {
+            // Check if speaker already has a bubble
+            if (speakerBubbles.ContainsKey(line.speakerTarget))
+            {
+                currentBubble = speakerBubbles[line.speakerTarget];
+                currentBubbleScript = currentBubble.GetComponent<EnhancedDialogBubble>();
+            }
+            else if (activeBubbles.Count < maxSimultaneousBubbles)
+            {
+                // Create new bubble for this speaker
+                yield return StartCoroutine(CreateBubble(line));
+                speakerBubbles[line.speakerTarget] = currentBubble;
+            }
+            else
+            {
+                // Remove oldest bubble and create new one
+                GameObject oldestBubble = activeBubbles[0];
+                yield return StartCoroutine(HideBubbleSmooth(oldestBubble));
+                
+                // Remove from speaker dictionary
+                Transform oldSpeaker = null;
+                foreach (var kvp in speakerBubbles)
+                {
+                    if (kvp.Value == oldestBubble)
+                    {
+                        oldSpeaker = kvp.Key;
+                        break;
+                    }
+                }
+                if (oldSpeaker != null)
+                {
+                    speakerBubbles.Remove(oldSpeaker);
+                }
+                
+                yield return StartCoroutine(CreateBubble(line));
+                speakerBubbles[line.speakerTarget] = currentBubble;
+            }
+        }
+        else
+        {
+            // Single bubble mode - remove previous and create new
+            if (activeBubbles.Count > 0)
+            {
+                yield return StartCoroutine(HideBubbleSmooth(activeBubbles[0]));
+            }
+            
+            yield return StartCoroutine(CreateBubble(line));
+        }
     }
+    
+    private GameObject currentBubble;
+    private EnhancedDialogBubble currentBubbleScript;
     
     IEnumerator CreateBubble(EnhancedDialogLine line)
     {
-        // Instantiate bubble on the character speaker's position
         if (line.speakerTarget == null)
         {
             Debug.LogError("Speaker target is not set for dialog line!");
             yield break;
         }
         
-        currentBubble = Instantiate(dialogBubblePrefab, transform);
-        currentBubbleScript = currentBubble.GetComponent<EnhancedDialogBubble>();
+        GameObject bubble = Instantiate(dialogBubblePrefab, transform);
+        EnhancedDialogBubble bubbleScript = bubble.GetComponent<EnhancedDialogBubble>();
         
-        if (currentBubbleScript == null)
+        if (bubbleScript == null)
         {
-            Debug.LogError("DialogBubble script not found on prefab!");
+            Debug.LogError("Enhanced DialogBubble script not found on prefab!");
+            Destroy(bubble);
             yield break;
         }
         
         // Setup bubble
-        currentBubbleScript.target = line.speakerTarget;
-        currentBubbleScript.typewriterSpeed = typewriterSpeed;
+        bubbleScript.SetTarget(line.speakerTarget);
+        bubbleScript.typewriterSpeed = line.customTypeSpeed > 0 ? line.customTypeSpeed : typewriterSpeed;
+        
+        // Enable smart positioning if character adaptation is enabled
+        bubbleScript.SetSmartPositioning(adaptBubbleToCharacter);
+        
+        // Configure visual effects based on line settings
+        bubbleScript.enableShake = line.shakeOnSpeak;
+        
+        // Add to active bubbles list
+        activeBubbles.Add(bubble);
+        
+        // Store as current bubble
+        currentBubble = bubble;
+        currentBubbleScript = bubbleScript;
         
         // Play bubble pop sound
         PlaySound(bubblePopSound);
         
-        // Small delay for bubble appearance
         yield return new WaitForSeconds(0.1f);
     }
     
     IEnumerator ShowDialog(EnhancedDialogLine line)
     {
-        string fullText = $"{line.speakerName}: {line.dialogText}";
+        if (currentBubbleScript == null) yield break;
+        
+        string fullText = $"{line.speakerName} : {line.dialogText}";
         
         isTyping = true;
         
         // Start typing with sound effect
-        StartCoroutine(PlayTypingSound());
+        StartCoroutine(PlayTypingSound(line.customTypingSound));
         
         // Show the dialog
         currentBubbleScript.Show(fullText);
@@ -239,77 +335,47 @@ public class EnhancedDialogManager : MonoBehaviour
         yield return new WaitUntil(() => currentBubbleScript.dialogText.text == fullText);
         
         isTyping = false;
+        
+        // Play line complete sound if specified
+        if (line.lineCompleteSound != null)
+        {
+            PlaySound(line.lineCompleteSound);
+        }
     }
     
-    IEnumerator HideBubble(GameObject bubble)
+    IEnumerator HideBubbleSmooth(GameObject bubble)
     {
         if (bubble != null)
         {
-            // Add fade out animation here if needed
             EnhancedDialogBubble bubbleScript = bubble.GetComponent<EnhancedDialogBubble>();
-            
-            // Simple fade out (you can enhance this)
-            CanvasGroup canvasGroup = bubble.GetComponent<CanvasGroup>();
-            if (canvasGroup == null)
-                canvasGroup = bubble.AddComponent<CanvasGroup>();
-            
-            float fadeTime = 0.3f;
-            float elapsed = 0f;
-            
-            while (elapsed < fadeTime)
+            if (bubbleScript != null)
             {
-                canvasGroup.alpha = 1f - (elapsed / fadeTime);
-                elapsed += Time.deltaTime;
-                yield return null;
+                bubbleScript.Hide();
+                yield return new WaitForSeconds(0.5f); // Wait for hide animation
             }
+            
+            // Remove from lists
+            activeBubbles.Remove(bubble);
             
             Destroy(bubble);
         }
     }
     
-    IEnumerator PlayTypingSound()
+    IEnumerator PlayTypingSound(AudioClip customSound = null)
     {
+        AudioClip soundToPlay = customSound != null ? customSound : typingSound;
+        
         while (isTyping)
         {
-            PlaySound(typingSound);
-            yield return new WaitForSeconds(typewriterSpeed * 3f); // Adjust sound frequency
+            PlaySound(soundToPlay);
+            yield return new WaitForSeconds(typewriterSpeed * 3f);
         }
     }
     
-    void CompleteCurrentTyping()
+    IEnumerator ShowNextLine()
     {
-        if (currentBubbleScript != null && isTyping)
-        {
-            // Force complete the typewriter effect
-            StopAllCoroutines();
-            
-            EnhancedDialogLine line = dialogLines[currentLineIndex];
-            string fullText = $"{line.speakerName}: {line.dialogText}";
-            currentBubbleScript.dialogText.text = fullText;
-            
-            isTyping = false;
-            
-            // Restart the main dialog coroutine
-            if (autoAdvance)
-            {
-                StartCoroutine(WaitAndAdvance());
-            }
-        }
-    }
-    
-    IEnumerator WaitAndAdvance()
-    {
-        yield return new WaitForSeconds(delayBetweenLines);
-        
-        if (currentLineIndex < dialogLines.Count - 1)
-        {
-            currentLineIndex++;
-            StartCoroutine(ShowCurrentLine());
-        }
-        else
-        {
-            EndDialog();
-        }
+        yield return StartCoroutine(ShowCurrentLine());
+        canAdvance = true;
     }
     
     void EndDialog()
@@ -319,10 +385,21 @@ public class EnhancedDialogManager : MonoBehaviour
     
     IEnumerator FinalCleanup()
     {
-        // Hide final bubble
-        if (currentBubble != null)
+        // Hide all bubbles smoothly
+        List<Coroutine> hideCoroutines = new List<Coroutine>();
+        
+        foreach (var bubble in activeBubbles.ToArray())
         {
-            yield return StartCoroutine(HideBubble(currentBubble));
+            if (bubble != null)
+            {
+                hideCoroutines.Add(StartCoroutine(HideBubbleSmooth(bubble)));
+            }
+        }
+        
+        // Wait for all bubbles to hide
+        foreach (var coroutine in hideCoroutines)
+        {
+            yield return coroutine;
         }
         
         isDialogActive = false;
@@ -340,75 +417,44 @@ public class EnhancedDialogManager : MonoBehaviour
     }
     
     // Public methods for external control
-    public void PauseDialog()
+    public void SetMultipleBubblesMode(bool enabled, int maxBubbles = 3)
     {
-        if (dialogCoroutine != null)
+        allowMultipleBubbles = enabled;
+        maxSimultaneousBubbles = maxBubbles;
+    }
+    
+    public void SetCharacterAdaptation(bool enabled)
+    {
+        adaptBubbleToCharacter = enabled;
+    }
+    
+    public GameObject GetBubbleForSpeaker(Transform speaker)
+    {
+        return speakerBubbles.ContainsKey(speaker) ? speakerBubbles[speaker] : null;
+    }
+    
+    public void HideBubbleForSpeaker(Transform speaker)
+    {
+        if (speakerBubbles.ContainsKey(speaker))
         {
-            StopCoroutine(dialogCoroutine);
+            StartCoroutine(HideBubbleSmooth(speakerBubbles[speaker]));
+            speakerBubbles.Remove(speaker);
         }
     }
     
-    public void ResumeDialog()
+    // Debug visualization
+    void OnDrawGizmosSelected()
     {
-        if (isDialogActive && dialogCoroutine == null)
-        {
-            dialogCoroutine = StartCoroutine(PlayDialog());
-        }
-    }
-    
-    public void SetDialogSpeed(float speed)
-    {
-        typewriterSpeed = speed;
-        if (currentBubbleScript != null)
-        {
-            currentBubbleScript.typewriterSpeed = speed;
-        }
-    }
-    
-    public void JumpToLine(int lineIndex)
-    {
-        if (lineIndex >= 0 && lineIndex < dialogLines.Count)
-        {
-            currentLineIndex = lineIndex;
-            StartCoroutine(ShowCurrentLine());
-        }
-    }
-    
-    // Debugging methods
-    [System.Diagnostics.Conditional("UNITY_EDITOR")]
-    void OnGUI()
-    {
-        if (!isDialogActive) return;
+        if (!adaptBubbleToCharacter) return;
         
-        GUILayout.BeginArea(new Rect(10, 10, 300, 200));
-        GUILayout.Label($"Dialog Progress: {currentLineIndex + 1}/{dialogLines.Count}");
-        GUILayout.Label($"Is Typing: {isTyping}");
-        GUILayout.Label($"Can Advance: {canAdvance}");
-        
-        if (GUILayout.Button("Skip Line"))
+        // Draw character detection radius for each dialog line's speaker
+        Gizmos.color = Color.cyan;
+        foreach (var line in dialogLines)
         {
-            AdvanceDialog();
+            if (line.speakerTarget != null)
+            {
+                Gizmos.DrawWireSphere(line.speakerTarget.position, characterDetectionRadius);
+            }
         }
-        
-        if (GUILayout.Button("Complete Typing"))
-        {
-            CompleteCurrentTyping();
-        }
-        
-        GUILayout.EndArea();
-    }
-    
-    // Auto-start dialog when scene loads
-    void Start()
-    {
-        // Delay start to ensure everything is initialized
-        StartCoroutine(AutoStartDialog());
-    }
-    
-    IEnumerator AutoStartDialog()
-    {
-        yield return new WaitForSeconds(0.5f);
-        StartDialog();
-        Debug.Log("Auto-started dialog system!");
     }
 }
