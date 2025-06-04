@@ -499,7 +499,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 1}
   m_AnchorMax: {x: 0.5, y: 1}
-  m_AnchoredPosition: {x: -250, y: -88}
+  m_AnchoredPosition: {x: -250, y: -44}
   m_SizeDelta: {x: 1075.3718, y: 127.732666}
   m_Pivot: {x: 0.5, y: 1}
 --- !u!224 &2894019562580535212
@@ -576,20 +576,18 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: 'Shadow Puppets
-
-    Story'
+  m_text: Anoman Obong
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: c6d49ce47abeda14298ececcec8e6e82, type: 2}
-  m_sharedMaterial: {fileID: -4507863530783520945, guid: c6d49ce47abeda14298ececcec8e6e82, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 2512fa695a8390641b85ccd5fb177e4b, type: 2}
+  m_sharedMaterial: {fileID: -4133873752687226576, guid: 2512fa695a8390641b85ccd5fb177e4b, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4278200960
-  m_fontColor: {r: 0.5, g: 0.16341446, b: 0, a: 1}
-  m_enableVertexGradient: 1
+    rgba: 4278190080
+  m_fontColor: {r: 0, g: 0, b: 0, a: 1}
+  m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
     topLeft: {r: 0, g: 0.7682035, b: 1, a: 1}
@@ -605,10 +603,10 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 60
+  m_fontSize: 56.05
   m_fontSizeBase: 60
   m_fontWeight: 400
-  m_enableAutoSizing: 0
+  m_enableAutoSizing: 1
   m_fontSizeMin: 18
   m_fontSizeMax: 72
   m_fontStyle: 17
@@ -735,12 +733,28 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 837722166}
     m_Modifications:
+    - target: {fileID: 900003161663555260, guid: ac747e1cc810b8c4ba4d29aa02e3ceb7, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: -300
+      objectReference: {fileID: 0}
+    - target: {fileID: 900935481489996657, guid: ac747e1cc810b8c4ba4d29aa02e3ceb7, type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 900935481489996657, guid: ac747e1cc810b8c4ba4d29aa02e3ceb7, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: -100
+      objectReference: {fileID: 0}
     - target: {fileID: 2518771998388864832, guid: ac747e1cc810b8c4ba4d29aa02e3ceb7, type: 3}
       propertyPath: m_AnchoredPosition.y
       value: -27.696396
       objectReference: {fileID: 0}
     - target: {fileID: 3063361761871387276, guid: ac747e1cc810b8c4ba4d29aa02e3ceb7, type: 3}
       propertyPath: m_AnchoredPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5905412338208994348, guid: ac747e1cc810b8c4ba4d29aa02e3ceb7, type: 3}
+      propertyPath: m_IsActive
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6745144514860087135, guid: ac747e1cc810b8c4ba4d29aa02e3ceb7, type: 3}
