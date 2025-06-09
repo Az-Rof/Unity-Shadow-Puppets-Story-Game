@@ -490,6 +490,63 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 4843985084834002234, guid: c8a0868c8bcdbe84194e34fe64d12168, type: 3}
+--- !u!1001 &1152696543
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: -8653719598885068355, guid: 4f625f3836bda51469b11745a72b4634, type: 3}
+      propertyPath: m_Name
+      value: Kidang Kencana
+      objectReference: {fileID: 0}
+    - target: {fileID: -7552582706839291426, guid: 4f625f3836bda51469b11745a72b4634, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 8.696111
+      objectReference: {fileID: 0}
+    - target: {fileID: -7552582706839291426, guid: 4f625f3836bda51469b11745a72b4634, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -3.7712271
+      objectReference: {fileID: 0}
+    - target: {fileID: -7552582706839291426, guid: 4f625f3836bda51469b11745a72b4634, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -7552582706839291426, guid: 4f625f3836bda51469b11745a72b4634, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -7552582706839291426, guid: 4f625f3836bda51469b11745a72b4634, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -7552582706839291426, guid: 4f625f3836bda51469b11745a72b4634, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -7552582706839291426, guid: 4f625f3836bda51469b11745a72b4634, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -7552582706839291426, guid: 4f625f3836bda51469b11745a72b4634, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -7552582706839291426, guid: 4f625f3836bda51469b11745a72b4634, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -7552582706839291426, guid: 4f625f3836bda51469b11745a72b4634, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 4843985084834002234, guid: 4f625f3836bda51469b11745a72b4634, type: 3}
 --- !u!4 &1445038610 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -7552582706839291426, guid: c8a0868c8bcdbe84194e34fe64d12168, type: 3}
@@ -642,6 +699,8 @@ MonoBehaviour:
   nameTagPrefab: {fileID: 363850457430643561, guid: 7df082f98d30c7a4a91bbec696a0a4ac, type: 3}
   healthSliderPrefab: {fileID: 0}
   heightOffset: 6.5
+  healthSliderYOffset: 1.5
+  healthSliderSize: {x: 10, y: 1}
 --- !u!4 &1472527903 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -7552582706839291426, guid: 88e3405ca2b70874c8113d20e3ed3546, type: 3}
@@ -722,8 +781,13 @@ MonoBehaviour:
   delayBetweenLines: 3
   typewriterSpeed: 0.05
   autoAdvance: 1
-  skipKey: 282
-  fastForwardKey: 283
+  allowMultipleBubbles: 0
+  maxSimultaneousBubbles: 3
+  adaptBubbleToCharacter: 1
+  characterLayer:
+    serializedVersion: 2
+    m_Bits: 1
+  characterDetectionRadius: 2
   audioSource: {fileID: 0}
   typingSound: {fileID: 0}
   bubblePopSound: {fileID: 0}
@@ -736,6 +800,9 @@ MonoBehaviour:
   OnDialogLineChanged:
     m_PersistentCalls:
       m_Calls: []
+  OnSpeakerChanged:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -745,3 +812,4 @@ SceneRoots:
   - {fileID: 714474546}
   - {fileID: 104713104}
   - {fileID: 810257714}
+  - {fileID: 1152696543}

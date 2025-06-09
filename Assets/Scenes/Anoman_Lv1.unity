@@ -152,6 +152,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 492284811}
+  - {fileID: 1354090706}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &3123773
@@ -1187,6 +1188,7 @@ MonoBehaviour:
     - {fileID: 0}
     - {fileID: 11400000, guid: 4590146cb2b218b48a6bba4a264a7e8f, type: 2}
     - {fileID: 11400000, guid: fe6a10f21928ed340986e5017cc8c9ec, type: 2}
+    - {fileID: 11400000, guid: db633adfea9dc234e956b7b4e317ee0c, type: 2}
     m_Events:
     - m_PersistentCalls:
         m_Calls:
@@ -1230,6 +1232,20 @@ MonoBehaviour:
             m_IntArgument: 0
             m_FloatArgument: 0
             m_StringArgument: 
+            m_BoolArgument: 0
+          m_CallState: 2
+    - m_PersistentCalls:
+        m_Calls:
+        - m_Target: {fileID: 1411788143}
+          m_TargetAssemblyTypeName: UnityEngine.Animator, UnityEngine
+          m_MethodName: Play
+          m_Mode: 5
+          m_Arguments:
+            m_ObjectArgument: {fileID: 0}
+            m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+            m_IntArgument: 0
+            m_FloatArgument: 0
+            m_StringArgument: Fade-Out
             m_BoolArgument: 0
           m_CallState: 2
 --- !u!1 &189351529 stripped
@@ -3335,6 +3351,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
+  - {fileID: 1283009917}
   - {fileID: 2065966551}
   - {fileID: 1598496341}
   - {fileID: 854100782}
@@ -5406,7 +5423,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 767464883}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: -0, z: -0.05815272, w: 0.9983077}
+  m_LocalRotation: {x: 0, y: -0, z: -0.058155984, w: 0.9983076}
   m_LocalPosition: {x: 1.737, y: -0.017, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -6359,6 +6376,10 @@ PlayableDirector:
     value: {fileID: 181292710}
   - key: {fileID: -1405175562271935572, guid: 32e9e56323e6463448fe8f50cb51956d, type: 2}
     value: {fileID: 1388693380}
+  - key: {fileID: 8120053548539234606, guid: 32e9e56323e6463448fe8f50cb51956d, type: 2}
+    value: {fileID: 1340805082}
+  - key: {fileID: -8507983567145261558, guid: 32e9e56323e6463448fe8f50cb51956d, type: 2}
+    value: {fileID: 1340805082}
   m_ExposedReferences:
     m_References: []
 --- !u!1 &854486424
@@ -9748,11 +9769,11 @@ Transform:
   m_GameObject: {fileID: 1283009913}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -2500, y: 1010, z: -30}
+  m_LocalPosition: {x: 0, y: 10, z: -30}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 0}
+  m_Father: {fileID: 492284811}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1285856135
 GameObject:
@@ -10052,11 +10073,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -7552582706839291426, guid: 49a673168498e244e991786e8ac15415, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 2.24
+      value: 2.2399902
       objectReference: {fileID: 0}
     - target: {fileID: -7552582706839291426, guid: 49a673168498e244e991786e8ac15415, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -4.47
+      value: -4.4699707
       objectReference: {fileID: 0}
     - target: {fileID: -7552582706839291426, guid: 49a673168498e244e991786e8ac15415, type: 3}
       propertyPath: m_LocalPosition.z
@@ -10089,6 +10110,18 @@ PrefabInstance:
     - target: {fileID: -7552582706839291426, guid: 49a673168498e244e991786e8ac15415, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -7221020487405985688, guid: 49a673168498e244e991786e8ac15415, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.9999624
+      objectReference: {fileID: 0}
+    - target: {fileID: -7221020487405985688, guid: 49a673168498e244e991786e8ac15415, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0.008674223
+      objectReference: {fileID: 0}
+    - target: {fileID: -7221020487405985688, guid: 49a673168498e244e991786e8ac15415, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: -1.718
       objectReference: {fileID: 0}
     - target: {fileID: 311580695235782034, guid: 49a673168498e244e991786e8ac15415, type: 3}
       propertyPath: m_LocalRotation.w
@@ -10155,7 +10188,7 @@ Animator:
   m_GameObject: {fileID: 1340805081}
   m_Enabled: 1
   m_Avatar: {fileID: 0}
-  m_Controller: {fileID: 9100000, guid: dfb1e34b64fbb35498b61fbdec693c75, type: 2}
+  m_Controller: {fileID: 0}
   m_CullingMode: 0
   m_UpdateMode: 0
   m_ApplyRootMotion: 0
@@ -10224,6 +10257,37 @@ MonoBehaviour:
     CostValue: 10
   - ActionName: Attack
     CostValue: 10
+--- !u!1 &1354090705
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1354090706}
+  m_Layer: 0
+  m_Name: Introduction-Penculikkan Sinta
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1354090706
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1354090705}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: -2000, y: 1000, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2145714}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1383801048
 GameObject:
   m_ObjectHideFlags: 0
@@ -10550,6 +10614,103 @@ CanvasRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1402705119}
+  m_CullTransparentMesh: 1
+--- !u!1 &1411788141
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1411788142}
+  - component: {fileID: 1411788145}
+  - component: {fileID: 1411788144}
+  - component: {fileID: 1411788143}
+  m_Layer: 5
+  m_Name: Fade
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 0
+--- !u!224 &1411788142
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1411788141}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1550053321}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 3000, y: 3000}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!95 &1411788143
+Animator:
+  serializedVersion: 5
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1411788141}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: 99176f66b2458284c80dca9221a1f415, type: 2}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0
+--- !u!114 &1411788144
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1411788141}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_Material: {fileID: 0}
+  m_Color: {r: 0, g: 0, b: 0, a: 1}
+  m_RaycastTarget: 1
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  m_Sprite: {fileID: 0}
+  m_Type: 0
+  m_PreserveAspect: 0
+  m_FillCenter: 1
+  m_FillMethod: 4
+  m_FillAmount: 1
+  m_FillClockwise: 1
+  m_FillOrigin: 0
+  m_UseSpriteMesh: 0
+  m_PixelsPerUnitMultiplier: 1
+--- !u!222 &1411788145
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1411788141}
   m_CullTransparentMesh: 1
 --- !u!1 &1430355873
 GameObject:
@@ -11179,7 +11340,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1510978908}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: 0.295915, w: 0.9552143}
+  m_LocalRotation: {x: -0, y: -0, z: 0.29583868, w: 0.9552379}
   m_LocalPosition: {x: 1.4901009, y: 0.00032055378, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -11492,6 +11653,7 @@ RectTransform:
   - {fileID: 1214756615}
   - {fileID: 1134027305}
   - {fileID: 1494450175}
+  - {fileID: 1411788142}
   - {fileID: 1816859571}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -13486,10 +13648,102 @@ MonoBehaviour:
     lineCompleteSound: {fileID: 0}
     characterAnimation: 
     shakeOnSpeak: 0
-  - speakerName: Rahwana
+  - speakerName: 
+    speakerTarget: {fileID: 1340805083}
+    dialogText: Mohon maaf Yang Mulia, Dewi Sarpakenaka hanya mendapatkan tabur tuai
+      atas godaan yang dia berikan kepada mereka.
+    bubbleColor: {r: 0, g: 0, b: 0, a: 0}
+    textColor: {r: 0, g: 0, b: 0, a: 0}
+    customDelay: 0
+    customTypeSpeed: 0
+    customTypingSound: {fileID: 0}
+    lineCompleteSound: {fileID: 0}
+    characterAnimation: 
+    shakeOnSpeak: 0
+  - speakerName: 
     speakerTarget: {fileID: 261784555}
-    dialogText: Tapi sesuai dengan apa yang Sarpakenaka laporkan. Dewi Sinta...bagaikan
-      titisan Dewi Sri Widawati..
+    dialogText: Tidak Prahasta, akan kubalaskan perlakuan mereka terhadap adikku.
+      Selain itu aku terpana melihat Dewi Sinta....
+    bubbleColor: {r: 0, g: 0, b: 0, a: 0}
+    textColor: {r: 0, g: 0, b: 0, a: 0}
+    customDelay: 0
+    customTypeSpeed: 0
+    customTypingSound: {fileID: 0}
+    lineCompleteSound: {fileID: 0}
+    characterAnimation: 
+    shakeOnSpeak: 0
+  - speakerName: 
+    speakerTarget: {fileID: 261784555}
+    dialogText: Dia bagaikan titisan Dewi Sri Widawati.
+    bubbleColor: {r: 0, g: 0, b: 0, a: 0}
+    textColor: {r: 0, g: 0, b: 0, a: 0}
+    customDelay: 0
+    customTypeSpeed: 0
+    customTypingSound: {fileID: 0}
+    lineCompleteSound: {fileID: 0}
+    characterAnimation: 
+    shakeOnSpeak: 0
+  - speakerName: 
+    speakerTarget: {fileID: 1340805083}
+    dialogText: Ampun Yang Mulia, hendaknya jangan Yang Mulia berbuat buruk kepada
+      mereka.
+    bubbleColor: {r: 0, g: 0, b: 0, a: 0}
+    textColor: {r: 0, g: 0, b: 0, a: 0}
+    customDelay: 0
+    customTypeSpeed: 0
+    customTypingSound: {fileID: 0}
+    lineCompleteSound: {fileID: 0}
+    characterAnimation: 
+    shakeOnSpeak: 0
+  - speakerName: 
+    speakerTarget: {fileID: 261784555}
+    dialogText: Tidak, aku akan mendapatkan Dewi Sinta bagaimanapun caranya. Kalamarica
+      !
+    bubbleColor: {r: 0, g: 0, b: 0, a: 0}
+    textColor: {r: 0, g: 0, b: 0, a: 0}
+    customDelay: 0
+    customTypeSpeed: 0
+    customTypingSound: {fileID: 0}
+    lineCompleteSound: {fileID: 0}
+    characterAnimation: 
+    shakeOnSpeak: 0
+  - speakerName: 
+    speakerTarget: {fileID: 2000144288}
+    dialogText: Hamba, Yang Mulia.
+    bubbleColor: {r: 0, g: 0, b: 0, a: 0}
+    textColor: {r: 0, g: 0, b: 0, a: 0}
+    customDelay: 0
+    customTypeSpeed: 0
+    customTypingSound: {fileID: 0}
+    lineCompleteSound: {fileID: 0}
+    characterAnimation: 
+    shakeOnSpeak: 0
+  - speakerName: 
+    speakerTarget: {fileID: 261784555}
+    dialogText: Pergilah ke Hutan Dandaka. Jadilah Kidang Kencana untuk membuat kedua
+      pangeran buangan itu meninggalkan Sinta.
+    bubbleColor: {r: 0, g: 0, b: 0, a: 0}
+    textColor: {r: 0, g: 0, b: 0, a: 0}
+    customDelay: 0
+    customTypeSpeed: 0
+    customTypingSound: {fileID: 0}
+    lineCompleteSound: {fileID: 0}
+    characterAnimation: 
+    shakeOnSpeak: 0
+  - speakerName: 
+    speakerTarget: {fileID: 261784555}
+    dialogText: Akan kubawa Sinta dan kujadikan permaisuriku di Alengka.
+    bubbleColor: {r: 0, g: 0, b: 0, a: 0}
+    textColor: {r: 0, g: 0, b: 0, a: 0}
+    customDelay: 0
+    customTypeSpeed: 0
+    customTypingSound: {fileID: 0}
+    lineCompleteSound: {fileID: 0}
+    characterAnimation: 
+    shakeOnSpeak: 0
+  - speakerName: 
+    speakerTarget: {fileID: 2000144288}
+    dialogText: Perintah Yang Mulia adalah mutlak bagi hamba.
     bubbleColor: {r: 0, g: 0, b: 0, a: 0}
     textColor: {r: 0, g: 0, b: 0, a: 0}
     customDelay: 0
@@ -14223,11 +14477,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -7636304687260310239, guid: b88d78a72a55cb64885529b487342c4d, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 0.9726759
+      value: 0.9726391
       objectReference: {fileID: 0}
     - target: {fileID: -7636304687260310239, guid: b88d78a72a55cb64885529b487342c4d, type: 3}
       propertyPath: m_LocalRotation.z
-      value: 0.23216724
+      value: 0.23232155
       objectReference: {fileID: 0}
     - target: {fileID: -7552582706839291426, guid: b88d78a72a55cb64885529b487342c4d, type: 3}
       propertyPath: m_LocalScale.x
@@ -14275,11 +14529,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -7372852686451582873, guid: b88d78a72a55cb64885529b487342c4d, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 0.76671344
+      value: 0.76670927
       objectReference: {fileID: 0}
     - target: {fileID: -7372852686451582873, guid: b88d78a72a55cb64885529b487342c4d, type: 3}
       propertyPath: m_LocalRotation.z
-      value: 0.6419895
+      value: 0.6419944
       objectReference: {fileID: 0}
     - target: {fileID: -6341612990212509769, guid: b88d78a72a55cb64885529b487342c4d, type: 3}
       propertyPath: m_Layer
@@ -14323,11 +14577,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -2609773334268934235, guid: b88d78a72a55cb64885529b487342c4d, type: 3}
       propertyPath: m_LocalRotation.w
-      value: -0.7134648
+      value: -0.713467
       objectReference: {fileID: 0}
     - target: {fileID: -2609773334268934235, guid: b88d78a72a55cb64885529b487342c4d, type: 3}
       propertyPath: m_LocalRotation.z
-      value: -0.70069116
+      value: -0.7006889
       objectReference: {fileID: 0}
     - target: {fileID: -1129672223582696563, guid: b88d78a72a55cb64885529b487342c4d, type: 3}
       propertyPath: m_Layer
@@ -14339,11 +14593,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 767822230300061367, guid: b88d78a72a55cb64885529b487342c4d, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 0.65396863
+      value: 0.6539091
       objectReference: {fileID: 0}
     - target: {fileID: 767822230300061367, guid: b88d78a72a55cb64885529b487342c4d, type: 3}
       propertyPath: m_LocalRotation.z
-      value: -0.75652164
+      value: -0.75657314
       objectReference: {fileID: 0}
     - target: {fileID: 1301422387742830457, guid: b88d78a72a55cb64885529b487342c4d, type: 3}
       propertyPath: m_SortingLayer
@@ -15448,7 +15702,6 @@ SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
   - {fileID: 1598668706}
-  - {fileID: 1283009917}
   - {fileID: 938795413}
   - {fileID: 1023556645}
   - {fileID: 1550053321}
