@@ -119,7 +119,7 @@ public class MainMenu : MonoBehaviour
         {
             Debug.Log($"Loading scene: {sceneName}");
             SceneManager.LoadScene(sceneName);
-            PlayerPrefs.SetInt("Lives", 5);
+            // PlayerPrefs.SetInt("Lives", 5);
             Time.timeScale = 1f;
         }
         else

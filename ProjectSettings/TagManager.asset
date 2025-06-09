@@ -6,6 +6,7 @@ TagManager:
   tags:
   - PopUp
   - Enemy
+  - NPC
   layers:
   - Default
   - TransparentFX
@@ -19,7 +20,7 @@ TagManager:
   - Player
   - Enemy
   - Wall
-  - 
+  - NPC
   - 
   - 
   - 
@@ -54,6 +55,9 @@ TagManager:
     locked: 0
   - name: Player
     uniqueID: 3554199873
+    locked: 0
+  - name: NPC
+    uniqueID: 978153241
     locked: 0
   - name: GrassGround
     uniqueID: 4199300535
