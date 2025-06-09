@@ -1,4 +1,0 @@
-# Blackbox AI Configuration
-file_modification: enabled
-allowed_extensions: [".cs", ".json", ".md", ".txt", ".asset"]
-max_file_size_mb: 10
