@@ -93,11 +93,11 @@ public class EnhancedDialogBubble : MonoBehaviour
 
     void UpdatePosition()
     {
-        Vector3 bestOffset = enableSmartPositioning ? 
+        Vector3 bestOffset = enableSmartPositioning ?
             FindBestPosition() : preferredOffset;
-        
+
         targetWorldPosition = target.position + bestOffset;
-        
+
         Vector2 screenPos = RectTransformUtility.WorldToScreenPoint(mainCam, targetWorldPosition);
 
         Vector2 canvasPos;
@@ -109,7 +109,7 @@ public class EnhancedDialogBubble : MonoBehaviour
 
         // Clamp to screen bounds
         canvasPos = ClampToScreenBounds(canvasPos);
-        
+
         transform.localPosition = canvasPos;
         originalPosition = canvasPos;
     }
@@ -118,12 +118,12 @@ public class EnhancedDialogBubble : MonoBehaviour
     {
         // Get character bounds
         Bounds characterBounds = GetCharacterBounds();
-        
+
         // Test each fallback position
         foreach (Vector3 testOffset in fallbackPositions)
         {
             Vector3 testWorldPos = target.position + testOffset;
-            
+
             // Check if position is clear of character
             if (IsPositionClearOfCharacter(testWorldPos, characterBounds))
             {
@@ -134,7 +134,7 @@ public class EnhancedDialogBubble : MonoBehaviour
                 }
             }
         }
-        
+
         // Return default if nothing works
         return preferredOffset;
     }
@@ -166,7 +166,7 @@ public class EnhancedDialogBubble : MonoBehaviour
     bool IsPositionVisibleOnScreen(Vector3 worldPosition)
     {
         Vector3 screenPoint = mainCam.WorldToScreenPoint(worldPosition);
-        
+
         // Check if within screen bounds with some margin
         return screenPoint.x > 50 && screenPoint.x < Screen.width - 50 &&
                screenPoint.y > 50 && screenPoint.y < Screen.height - 50 &&
@@ -179,18 +179,18 @@ public class EnhancedDialogBubble : MonoBehaviour
 
         RectTransform canvasRect = parentCanvas.transform as RectTransform;
         Vector2 bubbleSize = bubbleBackground.sizeDelta;
-        
+
         // Get canvas bounds
         Vector2 canvasSize = canvasRect.sizeDelta;
         Vector2 halfCanvas = canvasSize * 0.5f;
         Vector2 halfBubble = bubbleSize * 0.5f;
-        
+
         // Clamp position
-        canvasPos.x = Mathf.Clamp(canvasPos.x, -halfCanvas.x + halfBubble.x + 20, 
+        canvasPos.x = Mathf.Clamp(canvasPos.x, -halfCanvas.x + halfBubble.x + 20,
                                   halfCanvas.x - halfBubble.x - 20);
-        canvasPos.y = Mathf.Clamp(canvasPos.y, -halfCanvas.y + halfBubble.y + 20, 
+        canvasPos.y = Mathf.Clamp(canvasPos.y, -halfCanvas.y + halfBubble.y + 20,
                                   halfCanvas.y - halfBubble.y - 20);
-        
+
         return canvasPos;
     }
 
@@ -209,23 +209,23 @@ public class EnhancedDialogBubble : MonoBehaviour
     {
         bounceTimer += Time.deltaTime * bounceSpeed;
         float bounceOffset = Mathf.Sin(bounceTimer) * bounceHeight;
-        
+
         Vector3 bouncePosition = originalPosition + new Vector3(0, bounceOffset, 0);
         transform.localPosition = bouncePosition;
     }
 
     private string currentMessage = "";
-    
+
     public void Show(string message)
     {
         currentMessage = message; // Store the current message
         gameObject.SetActive(true);
-        
+
         if (enableAdaptiveSizing)
         {
             AdaptBubbleSize(message);
         }
-        
+
         StartCoroutine(AppearAndType(message));
     }
 
@@ -236,21 +236,21 @@ public class EnhancedDialogBubble : MonoBehaviour
         // Calculate preferred text size
         dialogText.text = message;
         dialogText.ForceMeshUpdate();
-        
+
         Vector2 textSize = dialogText.textBounds.size;
-        
+
         // Add padding
         Vector2 bubbleSize = new Vector2(
             textSize.x + paddingX,
             textSize.y + paddingY
         );
-        
+
         // Clamp to min/max sizes
         bubbleSize.x = Mathf.Clamp(bubbleSize.x, minBubbleSize.x, maxBubbleSize.x);
         bubbleSize.y = Mathf.Clamp(bubbleSize.y, minBubbleSize.y, maxBubbleSize.y);
-        
+
         bubbleBackground.sizeDelta = bubbleSize;
-        
+
         // Clear text for typewriter effect
         dialogText.text = "";
     }
@@ -290,8 +290,16 @@ public class EnhancedDialogBubble : MonoBehaviour
         enableShake = false;
     }
 
+    // Versi SETELAH perbaikan
     public void Hide()
     {
+        // PERIKSA dan KOSONGKAN teks sebelum memulai animasi hide
+        if (dialogText != null)
+        {
+            dialogText.text = "";
+        }
+
+        // Jalankan animasi seperti biasa
         StartCoroutine(HideAnimation());
     }
 

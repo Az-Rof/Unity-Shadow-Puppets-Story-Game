@@ -95,6 +95,12 @@ public class PlayerController : MonoBehaviour
         {
             jumpCooldownTimer -= Time.deltaTime;
         }
+
+        // Debug wall jump state
+        if (isWallJumping)
+        {
+            Debug.Log($"Wall Jumping - Velocity: {rb.velocity}, Direction: {wallJumpDirection}");
+        }
     }
 
     private void getController()
@@ -130,14 +136,38 @@ public class PlayerController : MonoBehaviour
 
     void movement()
     {
-        float h = Input.GetAxis("Horizontal");
-        if (inputActions != null)
+        // Jika sedang dashing, coroutine Dash() yang mengontrol pergerakan.
+        if (isDashing)
         {
-            h = inputActions.Player.Move.ReadValue<Vector2>().x; // Get horizontal movement from Input System
+            // Update animator untuk dash
+            animator.SetFloat("yMove", MathF.Abs(rb.velocity.y));
+            return;
         }
 
-        if (!isDashing && h != 0)
+        // Jika sedang wall jumping, JANGAN ubah velocity sama sekali
+        if (isWallJumping)
         {
+            // Hanya update animator berdasarkan kecepatan saat ini
+            animator.SetFloat("hMove", Mathf.Abs(rb.velocity.x) > 0.01f ? 1f : 0f);
+            animator.SetFloat("yMove", MathF.Abs(rb.velocity.y));
+            Debug.Log($"Wall Jump Active - Current Velocity: {rb.velocity}");
+            return; // KELUAR SEBELUM MENGUBAH VELOCITY
+        }
+
+        float h = 0f;
+        if (inputActions != null)
+        {
+            h = inputActions.Player.Move.ReadValue<Vector2>().x;
+        }
+        else
+        {
+            h = Input.GetAxis("Horizontal");
+        }
+
+        // Pergerakan normal
+        if (h != 0)
+        {
+            // Update facing direction
             if (h < 0)
             {
                 transform.localScale = new Vector3(-1f, 1f, 1f);
@@ -146,15 +176,19 @@ public class PlayerController : MonoBehaviour
             {
                 transform.localScale = new Vector3(1f, 1f, 1f);
             }
-            Vector2 newVelocity = rb.velocity;
-            newVelocity.x = h * stats.speed;
-            rb.velocity = newVelocity;
+
+            // Apply horizontal movement
+            rb.velocity = new Vector2(h * stats.speed, rb.velocity.y);
             animator.SetFloat("hMove", MathF.Abs(h));
         }
         else
         {
-            animator.SetFloat("hMove", 0);
+            // Stop horizontal movement when no input
+            rb.velocity = new Vector2(0f, rb.velocity.y);
+            animator.SetFloat("hMove", 0f);
         }
+
+        // Update vertical animation
         animator.SetFloat("yMove", MathF.Abs(rb.velocity.y));
     }
 
@@ -187,9 +221,7 @@ public class PlayerController : MonoBehaviour
             animator.SetBool("onGround", false);
             jumpCooldownTimer = stats.jumpCooldown;
             StartCoroutine(PrepareJump());
-
         }
-
     }
 
     void WallSlide()
@@ -220,37 +252,82 @@ public class PlayerController : MonoBehaviour
 
     public void WallJump()
     {
-        if (isWallSliding)
+        if (isWallSliding && stats.GetActionCost("Jump") <= stats.currentStamina)
         {
+            Debug.Log("Wall Jump Initiated");
+
+            // Konsumsi stamina untuk wall jump
+            stats.TakeAction(stats.GetActionCost("Jump"));
+
             float wallDirection = 0f;
             if (Physics2D.Raycast(transform.position, Vector2.right, wallCheckDistance, wallLayer))
             {
-                wallDirection = -1f; // Wall is on the right
+                wallDirection = -1f; // Wall is on the right, jump to left
+                Debug.Log("Wall on right, jumping left");
             }
             else if (Physics2D.Raycast(transform.position, Vector2.left, wallCheckDistance, wallLayer))
             {
-                wallDirection = 1f; // Wall is on the left
+                wallDirection = 1f; // Wall is on the left, jump to right
+                Debug.Log("Wall on left, jumping right");
             }
 
-            // Update player scale to face the wall
             if (wallDirection != 0)
             {
+                // Set state wall jump
+                isWallJumping = true;
+                wallJumpDirection = wallDirection;
+
+                // Hentikan wall sliding
+                isWallSliding = false;
+                animator.SetBool("wallSliding", false);
+
+                // Update scale menghadap arah jump
                 transform.localScale = new Vector3(wallDirection, 1f, 1f);
+
+                // Stop any existing wall jump coroutine
+                StopCoroutine(nameof(PerformWallJump));
+
+                // Start wall jump coroutine
+                StartCoroutine(PerformWallJump(wallDirection));
+
+                // Play sound effect
+                AudioManager.Instance.PlaySFX("Jump");
             }
-
-            isWallJumping = true;
-            wallJumpDirection = wallDirection; // Use the wall direction for jumping
-            wallJumpTimer = wallJumpTime;
-
-            Vector2 wallJumpVelocity = new Vector2(wallJumpDirection * stats.speed, stats.jumpPower);
-            rb.velocity = wallJumpVelocity;
-            CancelInvoke(nameof(StopWallJumping));
-            Invoke(nameof(StopWallJumping), wallJumpTime);
         }
     }
+
+    IEnumerator PerformWallJump(float direction)
+    {
+        Debug.Log($"Starting Wall Jump - Direction: {direction}");
+
+        // Set initial wall jump velocity dengan force yang lebih kuat
+        Vector2 wallJumpVelocity = new Vector2(direction * stats.speed * 2f, stats.jumpPower);
+        rb.velocity = wallJumpVelocity;
+
+        Debug.Log($"Wall Jump Velocity Set: {rb.velocity}");
+
+        // Maintain velocity during wall jump duration
+        float timer = 0f;
+        while (timer < wallJumpTime)
+        {
+            // Pastikan velocity horizontal tetap terjaga selama wall jump
+            if (isWallJumping)
+            {
+                rb.velocity = new Vector2(direction * stats.speed * 2f, rb.velocity.y);
+                Debug.Log($"Maintaining Wall Jump - Timer: {timer:F2}, Velocity: {rb.velocity}");
+            }
+
+            timer += Time.fixedDeltaTime;
+            yield return new WaitForFixedUpdate();
+        }
+
+        Debug.Log("Wall Jump Completed");
+        // End wall jump
+        isWallJumping = false;
+    }
+
     void StopWallJumping()
     {
-        AudioManager.Instance.PlaySFX("Jump");
         isWallJumping = false;
     }
 
@@ -322,6 +399,7 @@ public class PlayerController : MonoBehaviour
         yield return new WaitForSeconds(stats.dashCooldown - dashingTime);
         canDash = true;
     }
+
     // Method to take damage from the enemy (implemented in CharacterStats)
     // This method will be called when the player takes damage
     public void TakeDamage(int damage)
@@ -332,6 +410,10 @@ public class PlayerController : MonoBehaviour
     // Method to handle player attack
     public void Attack()
     {
+
+        // Trigger attack animation
+        animator.SetTrigger("isAttack");
+        
         if (Time.time >= lastAttackTime + stats.attackCooldown)
         {
             // Define the direction the player is facing
@@ -363,7 +445,7 @@ public class PlayerController : MonoBehaviour
                     enemy.TakeDamage((int)stats.attackPower);
                     attacked = true;
                     // Trigger attack animation
-                    animator.SetTrigger("isAttack");
+
                     // Log the attack for debugging
                     Debug.Log(gameObject.name + " attacked " + enemy.gameObject.name + " for " + (int)stats.attackPower + " damage.");
                 }
