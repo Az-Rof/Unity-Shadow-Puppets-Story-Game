@@ -58,16 +58,21 @@ public class CharacterStats : MonoBehaviour
     {
         if (currentHealth <= 0)
         {
-            if (tag != "Player")
-            {
-                Die(); // Call the Die method if health drops to 0 or below    
-            }
-            else
+            if (tag == "Player")
             {
                 Debug.Log(gameObject.name + " has died. Game Over.");
+                // Activate Game Over UI or any other logic
+                if (GameObject.Find("GameOverUI") != null)
+                {
+                    GameObject.Find("GameOverUI").SetActive(true);
+                }
                 Time.timeScale = 0; // Pause the game
             }
-
+            else if (tag == "Enemy")
+            {
+                Debug.Log(gameObject.name + " has died. Enemy defeated.");
+                Die(); // Call the Die method to destroy the enemy
+            }
         }
     }
 

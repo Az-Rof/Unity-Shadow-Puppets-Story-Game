@@ -3,53 +3,43 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using UnityEngine.Playables;
 
 public class Pause : MonoBehaviour
 {
-    PlayerLivesManager playerLivesManager;
+
+    [Header("Timeline Skip")]
+    public PlayableDirector SkipTimeline; // Reference to the PlayableDirector for skipping timeline    
+    [Header("Pause Panel")]
     public GameObject PausePanel;
     public List<GameObject> PopUp = new List<GameObject>();
 
     // Fungsi ini digunakan untuk  pause di game
     public void pause()
     {
-        playerLivesManager = GameObject.FindWithTag("Player").GetComponent<PlayerLivesManager>();
-        if (playerLivesManager != null)
+        if (Input.GetKeyDown(KeyCode.Escape) && Time.timeScale == 1f)
         {
-            bool isDead = playerLivesManager.isDead;
-            Transform parentTransform = GameObject.Find("GUI").transform;
-            GameObject Pause = parentTransform.Find("Pause").gameObject;
-            if (Pause != null && Input.GetKeyDown(KeyCode.Escape) && Time.timeScale == 1f)
-            {
-                Pause.SetActive(true);
-                Time.timeScale = 0f;
-            }
-            else if (Pause != null && Input.GetKeyDown(KeyCode.Escape) && Time.timeScale == 0f && !isDead)
-            {
-                Pause.SetActive(false);
-                Time.timeScale = 1f;
-            }
+            PausePanel.SetActive(true);
+            Time.timeScale = 0f;
+        }
+        else if (Input.GetKeyDown(KeyCode.Escape) && Time.timeScale == 0f)
+        {
+            PausePanel.SetActive(false);
+            Time.timeScale = 1f;
         }
     }
 
     public void RestartGame()
     {
-        // Fungsi ini akan di panggil saat button restart di klik
-        if (PlayerPrefs.GetInt("Lives") <= 0)
+        // This function will be called when the restart button is clicked
+        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+        Time.timeScale = 1f;
+        PausePanel.SetActive(false);
+        // Skip timeline introduction
+        if (SkipTimeline != null)
         {
-            playerLivesManager.ResetLives();
-            SceneManager.LoadScene(1);
-            Time.timeScale = 1f;
-        }
-        else
-        {
-            // Digunakan untuk memuat ulang scene yang sama
-            // Dapatkan nama scene yang sedang berjalan
-            string currentSceneName = SceneManager.GetActiveScene().name;
-            // Muat ulang scene yang sama
-            SceneManager.LoadScene(currentSceneName);
-            // Digunakan untuk mengatur kecepatan game
-            Time.timeScale = 1f;
+            SkipTimeline.time = SkipTimeline.duration; // Set the timeline to the end
+            SkipTimeline.Evaluate(); // Evaluate the timeline to apply changes immediately
         }
     }
 
@@ -105,7 +95,7 @@ public class Pause : MonoBehaviour
         }
     }
 
-       public void PopUp_quit()
+    public void PopUp_quit()
     {
         // Fungsi ini akan di panggil saat button exit di klik
         // Digunakan untuk menampilkan popup exit game dan menghilangkan popup yang lain
@@ -121,4 +111,15 @@ public class Pause : MonoBehaviour
             }
         }
     }
+    
+    // Debugging function to skip the timeline
+    public void SkipTimelineIntroduction()
+    {
+        if (SkipTimeline != null)
+        {
+            SkipTimeline.time = SkipTimeline.duration; // Set the timeline to the end
+            SkipTimeline.Evaluate(); // Evaluate the timeline to apply changes immediately
+        }
+    }
 }
+

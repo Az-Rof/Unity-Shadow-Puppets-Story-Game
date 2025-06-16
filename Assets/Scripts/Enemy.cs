@@ -8,11 +8,11 @@ public class Enemy : MonoBehaviour
     [Header("Patrol")]
     [SerializeField] private Transform[] waypoints;
     [SerializeField] private float idleDuration = 3f;
-    
+
     [Header("Enemy AI")]
-    [SerializeField] private float suspicionThreshold = 3f;
+    [SerializeField] private float suspicionThreshold = 1.5f;
     [SerializeField] private BoxCollider2D suspicionZone;
-    
+
     [Header("Combat")]
     [SerializeField] private LayerMask playerLayerMask = -1;
     #endregion
@@ -22,6 +22,7 @@ public class Enemy : MonoBehaviour
     private CharacterStats stats;
     private Rigidbody2D rb;
     private TrailRenderer tr;
+    private Animator animator;
     private Transform playerTransform;
     private PlayerController playerController;
 
@@ -43,11 +44,24 @@ public class Enemy : MonoBehaviour
     private float lastJumpTime = -10f;
     private bool isActionInProgress = false;
 
+    // Animation State
+    private bool isWalking = false;
+    private bool isGrounded = true;
+
     // Cached Values
     private Vector3 originalScale;
     private WaitForSeconds dashDuration;
     private WaitForSeconds jumpMidAir;
     private WaitForSeconds jumpLanding;
+
+    // Animation Hash IDs for performance
+    private int hashIsWalking;
+    private int hashIsIdle;
+    private int hashAttack;
+    private int hashDash;
+    private int hashJump;
+    private int hashIsGrounded;
+    private int hashSpeed;
 
     // Constants
     private const float WAYPOINT_REACH_DISTANCE = 0.1f;
@@ -55,6 +69,7 @@ public class Enemy : MonoBehaviour
     private const float DASH_DURATION = 0.3f;
     private const float JUMP_MID_AIR_TIME = 0.5f;
     private const float JUMP_LANDING_TIME = 0.3f;
+    private const float GROUND_CHECK_DISTANCE = 0.25f;
     #endregion
 
     #region Enums
@@ -90,6 +105,7 @@ public class Enemy : MonoBehaviour
     {
         InitializeComponents();
         CacheWaitForSeconds();
+        CacheAnimationHashes();
     }
 
     private void Start()
@@ -102,7 +118,9 @@ public class Enemy : MonoBehaviour
     {
         if (!EnsurePlayerReference()) return;
 
+        UpdateGroundCheck();
         UpdateStateMachine();
+        UpdateAnimations();
     }
 
     private void OnDrawGizmosSelected()
@@ -117,7 +135,8 @@ public class Enemy : MonoBehaviour
         rb = GetComponent<Rigidbody2D>();
         stats = GetComponent<CharacterStats>();
         tr = GetComponent<TrailRenderer>();
-        
+        animator = GetComponent<Animator>();
+
         if (suspicionZone == null)
             suspicionZone = GetComponent<BoxCollider2D>();
 
@@ -129,6 +148,17 @@ public class Enemy : MonoBehaviour
         dashDuration = new WaitForSeconds(DASH_DURATION);
         jumpMidAir = new WaitForSeconds(JUMP_MID_AIR_TIME);
         jumpLanding = new WaitForSeconds(JUMP_LANDING_TIME);
+    }
+
+    private void CacheAnimationHashes()
+    {
+        hashIsWalking = Animator.StringToHash("IsWalking");
+        hashIsIdle = Animator.StringToHash("IsIdle");
+        hashAttack = Animator.StringToHash("Attack");
+        hashDash = Animator.StringToHash("Dash");
+        hashJump = Animator.StringToHash("Jump");
+        hashIsGrounded = Animator.StringToHash("IsGrounded");
+        hashSpeed = Animator.StringToHash("Speed");
     }
 
     private void InitializeEnemy()
@@ -147,6 +177,9 @@ public class Enemy : MonoBehaviour
 
         if (suspicionZone == null)
             Debug.LogError($"{name}: No suspicion zone assigned and no BoxCollider2D found!");
+
+        if (animator == null)
+            Debug.LogError($"{name}: Animator component not found!");
     }
     #endregion
 
@@ -167,6 +200,85 @@ public class Enemy : MonoBehaviour
         {
             playerTransform = playerObject.transform;
             playerController = playerObject.GetComponent<PlayerController>();
+        }
+    }
+    #endregion
+
+    #region Ground Check
+    private void UpdateGroundCheck()
+    {
+        RaycastHit2D hit = Physics2D.Raycast(transform.position, Vector2.down, GROUND_CHECK_DISTANCE);
+        isGrounded = hit.collider != null;
+    }
+    #endregion
+
+    #region Animation System
+    private void UpdateAnimations()
+    {
+        if (animator == null) return;
+
+        // Update basic movement parameters
+        float currentSpeed = rb.velocity.magnitude;
+        animator.SetFloat(hashSpeed, currentSpeed);
+        animator.SetBool(hashIsGrounded, isGrounded);
+
+        // Update walking state based on movement and current state
+        bool shouldBeWalking = (currentSpeed > 0.1f) &&
+                              (currentState == EnemyState.Patrolling || currentState == EnemyState.Suspicious) &&
+                              !isActionInProgress;
+
+        if (isWalking != shouldBeWalking)
+        {
+            isWalking = shouldBeWalking;
+            animator.SetBool(hashIsWalking, isWalking);
+        }
+
+        // Update idle state
+        bool shouldBeIdle = currentSpeed < 0.1f &&
+                           !isActionInProgress &&
+                           isGrounded &&
+                           (currentState == EnemyState.Patrolling || currentState == EnemyState.Suspicious);
+
+        animator.SetBool(hashIsIdle, shouldBeIdle);
+
+        // Debug animation state
+        if (Application.isEditor)
+        {
+            DebugAnimationState();
+        }
+    }
+
+    private void TriggerAttackAnimation()
+    {
+        if (animator != null)
+        {
+            animator.SetTrigger(hashAttack);
+        }
+    }
+
+    private void TriggerDashAnimation()
+    {
+        if (animator != null)
+        {
+            animator.SetTrigger(hashDash);
+        }
+    }
+
+    private void TriggerJumpAnimation()
+    {
+        if (animator != null)
+        {
+            animator.SetTrigger(hashJump);
+        }
+    }
+
+    private void DebugAnimationState()
+    {
+        if (animator != null && animator.isActiveAndEnabled)
+        {
+            AnimatorStateInfo stateInfo = animator.GetCurrentAnimatorStateInfo(0);
+            // Uncomment for debugging
+            // Debug.Log($"Current Animation: {stateInfo.shortNameHash}, Speed: {rb.velocity.magnitude}, Walking: {isWalking}");
         }
     }
     #endregion
@@ -243,7 +355,7 @@ public class Enemy : MonoBehaviour
         else
         {
             currentState = EnemyState.Patrolling;
-            
+
             // Reset waypoint if just became unsuspicious
             if (wasSuspicious && waypoints.Length > 0)
             {
@@ -267,11 +379,11 @@ public class Enemy : MonoBehaviour
     private void MoveToWaypoint()
     {
         Vector2 targetPosition = waypoints[currentWaypoint].position;
-        
+
         // Move towards waypoint
         transform.position = Vector2.MoveTowards(
-            transform.position, 
-            targetPosition, 
+            transform.position,
+            targetPosition,
             stats.speed * Time.deltaTime
         );
 
@@ -310,14 +422,14 @@ public class Enemy : MonoBehaviour
         }
 
         suspicionLevel = Mathf.Clamp(suspicionLevel, 0, suspicionThreshold);
-        
+
         wasSuspicious = isSuspicious;
         isSuspicious = suspicionLevel >= suspicionThreshold;
     }
 
     private bool IsPlayerInSuspicionZone()
     {
-        return suspicionZone != null && 
+        return suspicionZone != null &&
                suspicionZone.bounds.Contains(playerTransform.position);
     }
 
@@ -325,10 +437,10 @@ public class Enemy : MonoBehaviour
     {
         Vector2 direction = (lastKnownPlayerPosition - (Vector2)transform.position).normalized;
         Vector2 newVelocity = new Vector2(
-            direction.x * stats.speed * SUSPICION_MOVE_SPEED_MULTIPLIER, 
+            direction.x * stats.speed * SUSPICION_MOVE_SPEED_MULTIPLIER,
             rb.velocity.y
         );
-        
+
         rb.velocity = newVelocity;
         FaceDirection(direction.x);
     }
@@ -356,12 +468,12 @@ public class Enemy : MonoBehaviour
             actions.Add(CombatAction.Attack);
 
         // Dash if cooldown is ready
-        if (currentTime >= lastDashTime + stats.dashCooldown && 
+        if (currentTime >= lastDashTime + stats.dashCooldown &&
             stats.GetActionCost("Dash") <= stats.currentStamina)
             actions.Add(CombatAction.Dash);
 
         // Jump if cooldown is ready
-        if (currentTime >= lastJumpTime + stats.jumpCooldown && 
+        if (currentTime >= lastJumpTime + stats.jumpCooldown &&
             stats.GetActionCost("Jump") <= stats.currentStamina)
             actions.Add(CombatAction.Jump);
 
@@ -391,9 +503,10 @@ public class Enemy : MonoBehaviour
         if (Time.time < lastAttackTime + stats.attackCooldown) return;
         if (playerController == null) return;
 
+        TriggerAttackAnimation();
         PlaySFX("AttackedPlayer");
         playerController.TakeDamage((int)stats.attackPower);
-        
+
         lastAttackTime = Time.time;
         stats.TakeAction(stats.GetActionCost("Attack"));
     }
@@ -401,14 +514,15 @@ public class Enemy : MonoBehaviour
     private IEnumerator PerformDash()
     {
         isActionInProgress = true;
-        
+
+        TriggerDashAnimation();
         Vector2 dashDirection = GetDirectionToPlayer();
         rb.velocity = dashDirection * stats.dashPower;
-        
+
         PlaySFX("Dash");
-        
+
         yield return dashDuration;
-        
+
         rb.velocity = Vector2.zero;
         stats.TakeAction(stats.GetActionCost("Dash"));
         isActionInProgress = false;
@@ -417,18 +531,19 @@ public class Enemy : MonoBehaviour
     private IEnumerator PerformJump()
     {
         isActionInProgress = true;
-        
+
+        TriggerJumpAnimation();
         Vector2 jumpDirection = new Vector2(GetDirectionToPlayer().x, 1).normalized;
         rb.velocity = new Vector2(jumpDirection.x * stats.speed, stats.jumpPower);
-        
+
         PlaySFX("Jump");
-        
+
         yield return jumpMidAir;
-        
+
         rb.velocity = new Vector2(rb.velocity.x, -stats.jumpPower);
-        
+
         yield return jumpLanding;
-        
+
         rb.velocity = Vector2.zero;
         stats.TakeAction(stats.GetActionCost("Jump"));
         isActionInProgress = false;
@@ -438,15 +553,15 @@ public class Enemy : MonoBehaviour
     #region Utility Methods
     private float GetDistanceToPlayer()
     {
-        return playerTransform != null ? 
-               Vector2.Distance(transform.position, playerTransform.position) : 
+        return playerTransform != null ?
+               Vector2.Distance(transform.position, playerTransform.position) :
                float.MaxValue;
     }
 
     private Vector2 GetDirectionToPlayer()
     {
-        return playerTransform != null ? 
-               (playerTransform.position - transform.position).normalized : 
+        return playerTransform != null ?
+               (playerTransform.position - transform.position).normalized :
                Vector2.zero;
     }
 
@@ -497,6 +612,26 @@ public class Enemy : MonoBehaviour
     {
         suspicionZone = newZone;
     }
+
+    // Animation Event Methods (called from Animation Events)
+    public void OnAttackHit()
+    {
+        // Called during attack animation at the moment of impact
+        // Damage is already applied in MeleeAttack(), this is for additional effects
+        Debug.Log("Attack hit registered!");
+    }
+
+    public void OnDashComplete()
+    {
+        // Called when dash animation completes
+        Debug.Log("Dash animation complete!");
+    }
+
+    public void OnJumpLanding()
+    {
+        // Called when jump landing animation completes
+        Debug.Log("Jump landing complete!");
+    }
     #endregion
 
     #region Debug Visualization
@@ -517,6 +652,10 @@ public class Enemy : MonoBehaviour
             Gizmos.color = Color.yellow;
             Gizmos.DrawWireCube(suspicionZone.bounds.center, suspicionZone.bounds.size);
         }
+
+        // Draw ground check
+        Gizmos.color = isGrounded ? Color.green : Color.red;
+        Gizmos.DrawLine(transform.position, transform.position + Vector3.down * GROUND_CHECK_DISTANCE);
 
         // Draw current state
         DrawStateGizmo();
@@ -550,10 +689,10 @@ public class Enemy : MonoBehaviour
     private void DrawStateGizmo()
     {
         Vector3 textPosition = transform.position + Vector3.up * 2f;
-        
-        #if UNITY_EDITOR
-        UnityEditor.Handles.Label(textPosition, $"State: {currentState}\nSuspicion: {suspicionLevel:F1}");
-        #endif
+
+#if UNITY_EDITOR
+        UnityEditor.Handles.Label(textPosition, $"State: {currentState}\nSuspicion: {suspicionLevel:F1}\nWalking: {isWalking}\nGrounded: {isGrounded}");
+#endif
     }
     #endregion
 }

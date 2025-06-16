@@ -48,6 +48,7 @@ public class EnhancedDialogBubble : MonoBehaviour
     public float paddingX = 20f;
     public float paddingY = 15f;
 
+    // This will be set by the EnhancedDialogManager or default to Camera.main
     private Camera mainCam;
     private Vector3 originalPosition;
     private Vector3 targetWorldPosition;
@@ -57,9 +58,20 @@ public class EnhancedDialogBubble : MonoBehaviour
     private Renderer targetRenderer;
     private float bounceTimer = 0f;
 
+    public void SetRenderCamera(Camera cameraToUse)
+    {
+        this.mainCam = cameraToUse;
+    }
+
     void Start()
     {
-        mainCam = Camera.main;
+        // Fallback if SetRenderCamera was not called or called with null
+        if (mainCam == null)
+        {
+            mainCam = Camera.main;
+            if (mainCam == null && Application.isPlaying)
+                Debug.LogWarning("EnhancedDialogBubble: Render camera not set and Camera.main not found.", this);
+        }
         if (parentCanvas == null)
             parentCanvas = GetComponentInParent<Canvas>();
 

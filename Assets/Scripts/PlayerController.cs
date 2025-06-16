@@ -44,7 +44,7 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private TrailRenderer tr;
 
     // Wall Jump
-    [SerializeField] private float wallSlideSpeed = 0.3f;
+    [SerializeField] private float wallSlideSpeed = 0.75f;
     [SerializeField] private LayerMask wallLayer;
     [SerializeField] private float wallCheckDistance = 0.25f;
     private bool isWallSliding = false;
@@ -54,6 +54,9 @@ public class PlayerController : MonoBehaviour
     private float wallJumpTimer;
 
     [SerializeField] private bool isJumping = false;
+
+    // Boolean part of cutscene even if the player was going to death
+    // [SerializeField] public bool isCutscene;
 
     // Stats
     public Slider healthSlider, staminaSlider; // Sliders for UI representation

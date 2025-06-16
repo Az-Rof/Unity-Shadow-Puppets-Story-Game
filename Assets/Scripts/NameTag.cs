@@ -72,7 +72,7 @@ public class NameTag : MonoBehaviour
 
         // Set character name
         nameText.text = stats.name;
-        nameText.fontSize = 1; // Set font size
+        nameText.fontSize = 1.5f; // Set font size
         if (tag == "Enemy")
         {
             nameText.color = new Color32(255, 93, 93, 255); // Set text color    

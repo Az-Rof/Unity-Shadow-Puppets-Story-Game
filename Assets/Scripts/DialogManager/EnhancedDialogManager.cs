@@ -3,11 +3,15 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 
+[ExecuteAlways]
 public partial class EnhancedDialogManager : MonoBehaviour
 {
     [Header("Dialog Setup")]
     public GameObject dialogBubblePrefab;
     public List<EnhancedDialogLine> dialogLines;
+
+    [Header("Core References")]
+    public Camera dialogCamera; // This will appear in the Inspector
 
     [Header("Timing Settings")]
     public float delayBetweenLines = 3f;
@@ -57,9 +61,18 @@ public partial class EnhancedDialogManager : MonoBehaviour
     public int TotalLines => dialogLines.Count;
     public float Progress => (float)currentLineIndex / dialogLines.Count;
 
-    void Start()
+    void Awake()
     {
-        InitializePool();
+        // If no camera is assigned in the Inspector, try to use the main camera
+        if (dialogCamera == null)
+        {
+            dialogCamera = Camera.main;
+            if (dialogCamera == null && Application.isPlaying) // Only log warning if in play mode and main camera is also null
+            {
+                Debug.LogWarning("EnhancedDialogManager: 'dialogCamera' is not assigned in the Inspector and Camera.main could not be found. Dialog bubble positioning might be incorrect if a camera is not set on the bubble itself.", this);
+            }
+        }
+        // InitializePool(); // Your InitializePool() is called in OnEnable
     }
 
     void Update()
@@ -308,6 +321,7 @@ public partial class EnhancedDialogManager : MonoBehaviour
         }
 
         // Setup bubble
+        bubbleScript.SetRenderCamera(this.dialogCamera); // Pass the manager's camera
         bubbleScript.SetTarget(line.speakerTarget);
         bubbleScript.typewriterSpeed = line.customTypeSpeed > 0 ? line.customTypeSpeed : typewriterSpeed;
 
@@ -503,6 +517,7 @@ public partial class EnhancedDialogManager : MonoBehaviour
         // 3. Konfigurasi dan tampilkan bubble
         bubbleToShow.gameObject.SetActive(true); // Pastikan aktif
         currentBubbleForTimeline = bubbleToShow; // Simpan sebagai referensi saat ini
+        currentBubbleForTimeline.SetRenderCamera(this.dialogCamera); // Set the camera
 
         currentBubbleForTimeline.SetTarget(line.speakerTarget);
         currentBubbleForTimeline.typewriterSpeed = line.customTypeSpeed > 0 ? line.customTypeSpeed : this.typewriterSpeed;
@@ -563,6 +578,7 @@ public partial class EnhancedDialogManager : MonoBehaviour
             // LANGKAH 2: Jika objeknya valid, baru periksa apakah sedang tidak aktif
             if (!bubblePool[i].gameObject.activeInHierarchy)
             {
+                bubblePool[i].SetRenderCamera(this.dialogCamera); // Ensure camera is set when reusing from pool
                 // Ditemukan bubble yang valid dan siap pakai!
                 return bubblePool[i];
             }
@@ -572,6 +588,7 @@ public partial class EnhancedDialogManager : MonoBehaviour
         Debug.LogWarning("Pool size is being expanded. Consider increasing the initial pool size if this happens frequently.");
         GameObject newBubbleGO = Instantiate(dialogBubblePrefab, transform);
         EnhancedDialogBubble newBubbleScript = newBubbleGO.GetComponent<EnhancedDialogBubble>();
+        newBubbleScript.SetRenderCamera(this.dialogCamera); // Set camera for newly created bubble
         bubblePool.Add(newBubbleScript); // Tambahkan yang baru ke pool untuk masa depan
         return newBubbleScript;
     }
@@ -582,10 +599,52 @@ public partial class EnhancedDialogManager : MonoBehaviour
         {
             if (entry.Value != null && entry.Value.activeSelf)
             {
-                entry.Value.GetComponent<EnhancedDialogBubble>().Hide();
+                EnhancedDialogBubble bubbleComponent = entry.Value.GetComponent<EnhancedDialogBubble>();
+                if (bubbleComponent != null)
+                {
+                    bubbleComponent.Hide();
+                }
             }
         }
         // Bersihkan dictionary
         speakerBubbles.Clear();
+    }
+
+    void OnEnable()
+    {
+        // Hanya inisialisasi jika pool belum ada, untuk mencegah duplikasi
+        if (bubblePool == null)
+        {
+            InitializePool();
+        }
+
+        // Ensure all pooled bubbles have the correct camera set,
+        // especially if dialogCamera was assigned after the pool was initialized.
+        if (bubblePool != null && dialogCamera != null)
+        {
+            foreach (var bubble in bubblePool) {
+                if (bubble != null) bubble.SetRenderCamera(dialogCamera);
+            }
+        }
+    }
+    void OnDisable()
+    {
+        // Logika ini HANYA berjalan jika kita berada di Edit Mode
+        if (!Application.isPlaying && bubblePool != null)
+        {
+            // Hancurkan semua objek bubble yang telah kita buat untuk preview
+            foreach (var bubble in bubblePool)
+            {
+                // Perlu periksa null jika ada objek yang hancur karena hal lain
+                if (bubble != null)
+                {
+                    // Gunakan DestroyImmediate karena kita berada di Editor
+                    DestroyImmediate(bubble.gameObject);
+                }
+            }
+            // Kosongkan list setelah semua objeknya hancur
+            bubblePool.Clear();
+            bubblePool = null;
+        }
     }
 }
