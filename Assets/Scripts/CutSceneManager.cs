@@ -64,17 +64,15 @@ public class CutSceneManager : MonoBehaviour
         if (enemy == null)
         {
             enemy = FindObjectOfType<Enemy>();
-            if (enemy == null)
-            {
-                Debug.LogError("Enemy not found in the scene. Please assign it in the inspector or ensure it exists in the scene.");
-                return;
-            }
-            else
-            {
-                enemy.enabled = false; // Disable enemy controls if needed
-                Debug.Log("Enemy controls deactivated.");
-            }
+            Debug.LogError("Enemy not found in the scene. Please assign it in the inspector or ensure it exists in the scene.");
+            return;
         }
+        else if (enemy != null)
+        {
+            enemy.enabled = false; // Disable enemy controls if needed
+            Debug.Log("Enemy controls deactivated.");
+        }
+        else
         {
             Debug.LogWarning("Enemy reference is not set in CutSceneManager.");
         }
