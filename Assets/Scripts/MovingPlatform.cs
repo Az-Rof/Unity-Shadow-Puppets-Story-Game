@@ -7,6 +7,13 @@ public class MovingPlatform : MonoBehaviour
     Rigidbody2D rb;
     BoxCollider2D trigger;
 
+    [Header("Platform Movement Settings")]
+    public Transform[] waypoints;
+    int currentWaypointIndex = 0;
+
+    [Header("Movement Speed")]
+    [SerializeField] float moveSpeed = 10f;
+
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
@@ -34,6 +41,21 @@ public class MovingPlatform : MonoBehaviour
         {
             // Remove the player from the platform's parent
             collision.transform.SetParent(null);
+        }
+    }
+    // Move the platform between waypoints
+    private void Update()
+    {
+        if (waypoints.Length == 0) return;
+
+        Transform target = waypoints[currentWaypointIndex];
+        float step = moveSpeed * Time.deltaTime;
+        transform.position = Vector2.MoveTowards(transform.position, target.position, step);
+
+        // Check if the platform has reached the target waypoint
+        if (Vector2.Distance(transform.position, target.position) < 0.1f)
+        {
+            currentWaypointIndex = (currentWaypointIndex + 1) % waypoints.Length;
         }
     }
 }

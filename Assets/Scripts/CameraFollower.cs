@@ -38,7 +38,10 @@ public class CameraFollower : MonoBehaviour
     private Vector3 CalculateTargetPosition()
     {
         // Calculate target position considering dead zone and offset
-        Vector3 targetPosition = target.position + (Vector3)followOffset;
+        // Vector3 targetPosition = target.position + (Vector3)followOffset;
+        Vector3 worldPosition = target.parent != null ? target.parent.TransformPoint(target.localPosition) : target.position;
+        Vector3 targetPosition = worldPosition + (Vector3)followOffset;
+
 
         // Apply dead zone
         float deltaX = Mathf.Abs(targetPosition.x - transform.position.x);

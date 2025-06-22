@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using Unity.VisualScripting;
 using Unity.VisualScripting.Antlr3.Runtime.Misc;
@@ -413,51 +414,57 @@ public class PlayerController : MonoBehaviour
     // Method to handle player attack
     public void Attack()
     {
-
-        // Trigger attack animation
-        animator.SetTrigger("isAttack");
-        
-        if (Time.time >= lastAttackTime + stats.attackCooldown)
+        if (stats.GetActionCost("Attack") <= stats.currentStamina)
         {
-            // Define the direction the player is facing
-            Vector2 attackDirection = transform.localScale.x < 0 ? Vector2.left : Vector2.right;
+            // Trigger attack animation
+            animator.SetTrigger("isAttack");
 
-            // Define the attack box center and size
-            Vector2 boxCenter = (Vector2)transform.position + attackDirection * (stats.attackRange / 2f);
-            Vector2 boxSize = new Vector2(stats.attackRange, 1f); // 1f is height of the line area
-
-            // Find all enemies in the attack area
-            Collider2D[] hitEnemies = Physics2D.OverlapBoxAll(boxCenter, boxSize, 0f, LayerMask.GetMask("Enemy"));
-
-            bool attacked = false;
-
-            foreach (Collider2D enemyCollider in hitEnemies)
+            if (Time.time >= lastAttackTime + stats.attackCooldown)
             {
-                Enemy enemy = enemyCollider.GetComponent<Enemy>();
-                if (enemy != null)
+                // Action cost
+                stats.TakeAction(stats.GetActionCost("Attack"));
+
+                // Define the direction the player is facing
+                Vector2 attackDirection = transform.localScale.x < 0 ? Vector2.left : Vector2.right;
+
+                // Define the attack box center and size
+                Vector2 boxCenter = (Vector2)transform.position + attackDirection * (stats.attackRange / 2f);
+                Vector2 boxSize = new Vector2(stats.attackRange, 1f); // 1f is height of the line area
+
+                // Find all enemies in the attack area
+                Collider2D[] hitEnemies = Physics2D.OverlapBoxAll(boxCenter, boxSize, 0f, LayerMask.GetMask("Enemy"));
+
+                bool attacked = false;
+
+                foreach (Collider2D enemyCollider in hitEnemies)
                 {
-                    try
+                    Enemy enemy = enemyCollider.GetComponent<Enemy>();
+                    if (enemy != null)
                     {
-                        AudioManager.Instance.PlaySFX("Attack");
-                    }
-                    catch (System.Exception)
-                    {
-                        Debug.LogWarning("AudioManager.Instance not found or PlaySFX method failed.");
-                    }
+                        try
+                        {
+                            AudioManager.Instance.PlaySFX("Attack");
+                        }
+                        catch (System.Exception)
+                        {
+                            Debug.LogWarning("AudioManager.Instance not found or PlaySFX method failed.");
+                        }
 
-                    enemy.TakeDamage((int)stats.attackPower);
-                    attacked = true;
-                    // Trigger attack animation
+                        enemy.TakeDamage((int)stats.attackPower);
+                        attacked = true;
+                        // Trigger attack animation
 
-                    // Log the attack for debugging
-                    Debug.Log(gameObject.name + " attacked " + enemy.gameObject.name + " for " + (int)stats.attackPower + " damage.");
+                        // Log the attack for debugging
+                        Debug.Log(gameObject.name + " attacked " + enemy.gameObject.name + " for " + (int)stats.attackPower + " damage.");
+                    }
+                }
+                if (attacked)
+                {
+                    lastAttackTime = Time.time;
                 }
             }
-            if (attacked)
-            {
-                lastAttackTime = Time.time;
-            }
         }
+
     }
     void sliderUpdate()
     {
