@@ -32,9 +32,17 @@ public class Pause : MonoBehaviour
     public void RestartGame()
     {
         // This function will be called when the restart button is clicked
+        CharacterStats characterStats = FindObjectOfType<CharacterStats>();
+        if (characterStats != null)
+        {
+            characterStats.currentHealth = characterStats.maxHealth;
+            characterStats.currentStamina = characterStats.maxStamina;
+        }
+
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
         Time.timeScale = 1f;
         PausePanel.SetActive(false);
+
         // Skip timeline introduction
         if (SkipTimeline != null)
         {
