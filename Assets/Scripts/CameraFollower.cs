@@ -18,7 +18,17 @@ public class CameraFollower : MonoBehaviour
 
     void FixedUpdate()
     {
-        if (target == null) return;
+        // If target is not assigned, try to find it
+        if (target == null)
+        {
+            target = GameObject.FindGameObjectWithTag("Player")?.transform;
+            if (target == null)
+            {
+                Debug.LogWarning("CameraFollower: Target not assigned and no GameObject with tag 'Player' found.");
+                return; // Exit if no target is found
+            }
+        }
+        
 
         Vector3 targetPosition = CalculateTargetPosition();
 

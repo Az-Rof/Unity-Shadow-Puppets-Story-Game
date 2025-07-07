@@ -1,698 +1,399 @@
+using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
-using UnityEngine;
 
+[RequireComponent(typeof(CharacterStats))]
+[RequireComponent(typeof(Rigidbody2D))]
+[RequireComponent(typeof(Animator))]
 public class Enemy : MonoBehaviour
 {
-    #region Serialized Fields
-    [Header("Patrol")]
-    [SerializeField] private Transform[] waypoints;
-    [SerializeField] private float idleDuration = 3f;
+    // State machine for AI
+    private enum AIState { Patrolling, Chasing, Combat }
+    private AIState currentState;
 
-    [Header("Enemy AI")]
-    [SerializeField] private float suspicionThreshold = 1.5f;
-    [SerializeField] private BoxCollider2D suspicionZone;
-
-    [Header("Combat")]
-    [SerializeField] private LayerMask playerLayerMask = -1;
-    #endregion
-
-    #region Private Fields
-    // Core Components
+    [Header("AI Components")]
     private CharacterStats stats;
     private Rigidbody2D rb;
-    private TrailRenderer tr;
     private Animator animator;
-    private Transform playerTransform;
-    private PlayerController playerController;
 
-    // Patrol State
-    private int currentWaypoint = 0;
-    private float idleTimer = 0f;
-    private bool isIdle = true;
+    [Header("Patrol Settings")]
+    public List<Transform> patrolPoints;
+    public float patrolWaitTime = 3f;
+    private int currentPatrolPointIndex = 0;
+    private float waitTimer;
+    private Vector3 startingPosition;
 
-    // AI State
-    private EnemyState currentState = EnemyState.Patrolling;
-    private float suspicionLevel = 0f;
-    private bool isSuspicious = false;
-    private bool wasSuspicious = false;
-    private Vector2 lastKnownPlayerPosition;
+    [Header("Detection & Chase Settings")]
+    public Transform player;
+    [SerializeField] private BoxCollider2D suspicionZone;
+    public float combatRange = 10f;
+    public float chaseTimeout = 10f;
+    private Vector3 lastKnownPlayerPosition;
+    private float chaseTimer;
 
-    // Combat State
-    private float lastAttackTime = 0f;
-    private float lastDashTime = -10f;
-    private float lastJumpTime = -10f;
-    private bool isActionInProgress = false;
+    [Header("Smart AI Settings")]
+    [Range(0f, 1f)]
+    public float dashChance = 0.6f;
+    public float repositionTime = 4f;
+    public float dashDuration = 0.2f;
+    private float lastActionTimer;
 
-    // Animation State
-    private bool isWalking = false;
-    private bool isGrounded = true;
+    [Header("Combat Tracking")]
+    private float lastAttackTime;
+    private float lastDashTime;
+    private float lastJumpTime;
+    private bool isDashing = false;
 
-    // Cached Values
-    private Vector3 originalScale;
-    private WaitForSeconds dashDuration;
-    private WaitForSeconds jumpMidAir;
-    private WaitForSeconds jumpLanding;
+    [Header("Ground Check")]
+    public LayerMask groundLayer;
+    public float groundRaycastDistance = 1f;
+    public float ledgeCheckDistance = 0.5f;
+    private bool isGrounded;
 
-    // Animation Hash IDs for performance
-    private int hashIsWalking;
-    private int hashIsIdle;
-    private int hashAttack;
-    private int hashDash;
-    private int hashJump;
-    private int hashIsGrounded;
-    private int hashSpeed;
+    private Vector2 moveDirection;
+    private bool isWaiting = false;
 
-    // Constants
-    private const float WAYPOINT_REACH_DISTANCE = 0.1f;
-    private const float SUSPICION_MOVE_SPEED_MULTIPLIER = 1.15f;
-    private const float DASH_DURATION = 0.3f;
-    private const float JUMP_MID_AIR_TIME = 0.5f;
-    private const float JUMP_LANDING_TIME = 0.3f;
-    private const float GROUND_CHECK_DISTANCE = 0.25f;
-    #endregion
-
-    #region Enums
-    public enum EnemyState
+    void Start()
     {
-        Patrolling,
-        Suspicious,
-        Combat,
-        ActionInProgress
-    }
-
-    private enum CombatAction
-    {
-        Attack = 0,
-        Dash = 1,
-        Jump = 2
-    }
-    #endregion
-
-    #region Properties
-    public CharacterStats Stats
-    {
-        get => stats;
-        set => stats = value;
-    }
-
-    public bool IsActionInProgress => isActionInProgress;
-    public EnemyState CurrentState => currentState;
-    #endregion
-
-    #region Unity Lifecycle
-    private void Awake()
-    {
-        InitializeComponents();
-        CacheWaitForSeconds();
-        CacheAnimationHashes();
-    }
-
-    private void Start()
-    {
-        InitializeEnemy();
-        ValidateSetup();
-    }
-
-    private void Update()
-    {
-        if (!EnsurePlayerReference()) return;
-
-        UpdateGroundCheck();
-        UpdateStateMachine();
-        UpdateAnimations();
-    }
-
-    private void OnDrawGizmosSelected()
-    {
-        DrawDebugGizmos();
-    }
-    #endregion
-
-    #region Initialization
-    private void InitializeComponents()
-    {
-        rb = GetComponent<Rigidbody2D>();
         stats = GetComponent<CharacterStats>();
-        tr = GetComponent<TrailRenderer>();
+        rb = GetComponent<Rigidbody2D>();
         animator = GetComponent<Animator>();
 
-        if (suspicionZone == null)
-            suspicionZone = GetComponent<BoxCollider2D>();
-
-        originalScale = transform.localScale;
-    }
-
-    private void CacheWaitForSeconds()
-    {
-        dashDuration = new WaitForSeconds(DASH_DURATION);
-        jumpMidAir = new WaitForSeconds(JUMP_MID_AIR_TIME);
-        jumpLanding = new WaitForSeconds(JUMP_LANDING_TIME);
-    }
-
-    private void CacheAnimationHashes()
-    {
-        hashIsWalking = Animator.StringToHash("IsWalking");
-        hashIsIdle = Animator.StringToHash("IsIdle");
-        hashAttack = Animator.StringToHash("Attack");
-        hashDash = Animator.StringToHash("Dash");
-        hashJump = Animator.StringToHash("Jump");
-        hashIsGrounded = Animator.StringToHash("IsGrounded");
-        hashSpeed = Animator.StringToHash("Speed");
-    }
-
-    private void InitializeEnemy()
-    {
-        FindPlayerReference();
-        currentState = waypoints.Length > 0 ? EnemyState.Patrolling : EnemyState.Combat;
-    }
-
-    private void ValidateSetup()
-    {
-        if (stats == null)
-            Debug.LogError($"{name}: CharacterStats component not found!");
-
-        if (waypoints.Length == 0)
-            Debug.LogWarning($"{name}: No waypoints assigned for patrol!");
-
-        if (suspicionZone == null)
-            Debug.LogError($"{name}: No suspicion zone assigned and no BoxCollider2D found!");
-
-        if (animator == null)
-            Debug.LogError($"{name}: Animator component not found!");
-    }
-    #endregion
-
-    #region Player Reference Management
-    private bool EnsurePlayerReference()
-    {
-        if (playerTransform == null)
+        if (player == null)
         {
-            FindPlayerReference();
-        }
-        return playerTransform != null;
-    }
-
-    private void FindPlayerReference()
-    {
-        GameObject playerObject = GameObject.FindGameObjectWithTag("Player");
-        if (playerObject != null)
-        {
-            playerTransform = playerObject.transform;
-            playerController = playerObject.GetComponent<PlayerController>();
-        }
-    }
-    #endregion
-
-    #region Ground Check
-    private void UpdateGroundCheck()
-    {
-        RaycastHit2D hit = Physics2D.Raycast(transform.position, Vector2.down, GROUND_CHECK_DISTANCE);
-        isGrounded = hit.collider != null;
-    }
-    #endregion
-
-    #region Animation System
-    private void UpdateAnimations()
-    {
-        if (animator == null) return;
-
-        // Update basic movement parameters
-        float currentSpeed = rb.velocity.magnitude;
-        animator.SetFloat(hashSpeed, currentSpeed);
-        animator.SetBool(hashIsGrounded, isGrounded);
-
-        // Update walking state based on movement and current state
-        bool shouldBeWalking = (currentSpeed > 0.1f) &&
-                              (currentState == EnemyState.Patrolling || currentState == EnemyState.Suspicious) &&
-                              !isActionInProgress;
-
-        if (isWalking != shouldBeWalking)
-        {
-            isWalking = shouldBeWalking;
-            animator.SetBool(hashIsWalking, isWalking);
+            GameObject playerObject = GameObject.FindGameObjectWithTag("Player");
+            if (playerObject != null) player = playerObject.transform;
         }
 
-        // Update idle state
-        bool shouldBeIdle = currentSpeed < 0.1f &&
-                           !isActionInProgress &&
-                           isGrounded &&
-                           (currentState == EnemyState.Patrolling || currentState == EnemyState.Suspicious);
+        if (suspicionZone == null) Debug.LogError("Suspicion Zone BoxCollider2D tidak di-set di Inspector untuk " + gameObject.name);
 
-        animator.SetBool(hashIsIdle, shouldBeIdle);
-
-        // Debug animation state
-        if (Application.isEditor)
-        {
-            DebugAnimationState();
-        }
+        startingPosition = transform.position;
+        SwitchState(AIState.Patrolling);
     }
 
-    private void TriggerAttackAnimation()
+    void Update()
     {
-        if (animator != null)
-        {
-            animator.SetTrigger(hashAttack);
-        }
+        if (isDashing) return;
+
+        CheckIfGrounded();
+        HandleStateMachine();
+        UpdateAnimator();
     }
 
-    private void TriggerDashAnimation()
+    void FixedUpdate()
     {
-        if (animator != null)
-        {
-            animator.SetTrigger(hashDash);
-        }
+        ApplyMovement();
     }
 
-    private void TriggerJumpAnimation()
-    {
-        if (animator != null)
-        {
-            animator.SetTrigger(hashJump);
-        }
-    }
-
-    private void DebugAnimationState()
-    {
-        if (animator != null && animator.isActiveAndEnabled)
-        {
-            AnimatorStateInfo stateInfo = animator.GetCurrentAnimatorStateInfo(0);
-            // Uncomment for debugging
-            // Debug.Log($"Current Animation: {stateInfo.shortNameHash}, Speed: {rb.velocity.magnitude}, Walking: {isWalking}");
-        }
-    }
-    #endregion
-
-    #region State Machine
-    private void UpdateStateMachine()
+    void HandleStateMachine()
     {
         switch (currentState)
         {
-            case EnemyState.Patrolling:
-                HandlePatrolling();
-                break;
-            case EnemyState.Suspicious:
-                HandleSuspicious();
-                break;
-            case EnemyState.Combat:
-                HandleCombat();
-                break;
-            case EnemyState.ActionInProgress:
-                // Wait for action to complete
-                break;
-        }
-
-        UpdateSuspicion();
-        CheckForStateTransitions();
-    }
-
-    private void HandlePatrolling()
-    {
-        if (waypoints.Length == 0) return;
-
-        if (isIdle)
-        {
-            UpdateIdleTimer();
-        }
-        else
-        {
-            MoveToWaypoint();
+            case AIState.Patrolling: Patrol(); break;
+            case AIState.Chasing: Chase(); break;
+            case AIState.Combat: Combat(); break;
         }
     }
 
-    private void HandleSuspicious()
+    public void TakeDamage(int damage)
     {
-        MoveToLastKnownPosition();
+        stats.TakeDamage(damage);
+        AudioManager.Instance.PlaySFX("Attack");
     }
 
-    private void HandleCombat()
-    {
-        FacePlayer();
-        ExecuteAI();
-    }
+    #region State Logic & Actions
 
-    private void CheckForStateTransitions()
+    void Patrol()
     {
-        if (isActionInProgress)
+        if (IsPlayerInDetectionRange()) { SwitchState(AIState.Chasing); return; }
+
+        if (!isWaiting && isGrounded && moveDirection.x != 0 && IsNearLedge())
         {
-            currentState = EnemyState.ActionInProgress;
+            moveDirection = Vector2.zero;
+            Flip(-transform.localScale.x);
             return;
         }
 
-        float distanceToPlayer = GetDistanceToPlayer();
-
-        // Transition to combat if player is in attack range
-        if (distanceToPlayer <= stats.attackRange)
+        if (patrolPoints.Count == 0)
         {
-            currentState = EnemyState.Combat;
-        }
-        // Transition to suspicious if suspicion threshold is met
-        else if (isSuspicious)
-        {
-            currentState = EnemyState.Suspicious;
-        }
-        // Return to patrolling
-        else
-        {
-            currentState = EnemyState.Patrolling;
-
-            // Reset waypoint if just became unsuspicious
-            if (wasSuspicious && waypoints.Length > 0)
+            float horizontalDistanceToStart = Mathf.Abs(transform.position.x - startingPosition.x);
+            if (horizontalDistanceToStart > 0.5f)
             {
-                currentWaypoint = Random.Range(0, waypoints.Length);
+                MoveTowards(startingPosition, false);
+            }
+            else
+            {
+                moveDirection = Vector2.zero;
+            }
+            isWaiting = false;
+            return;
+        }
+
+        Transform targetPoint = patrolPoints[currentPatrolPointIndex];
+
+        float horizontalDistance = Mathf.Abs(transform.position.x - targetPoint.position.x);
+
+        if (horizontalDistance < 0.5f)
+        {
+            moveDirection = Vector2.zero;
+            isWaiting = true;
+            waitTimer -= Time.deltaTime;
+
+            if (waitTimer <= 0)
+            {
+                waitTimer = patrolWaitTime;
+                currentPatrolPointIndex = (currentPatrolPointIndex + 1) % patrolPoints.Count;
+                isWaiting = false;
             }
         }
-    }
-    #endregion
-
-    #region Patrol Behavior
-    private void UpdateIdleTimer()
-    {
-        idleTimer += Time.deltaTime;
-        if (idleTimer >= idleDuration)
+        else
         {
-            isIdle = false;
-            idleTimer = 0f;
+            isWaiting = false;
+            MoveTowards(targetPoint.position, false);
         }
     }
 
-    private void MoveToWaypoint()
+    void Chase()
     {
-        Vector2 targetPosition = waypoints[currentWaypoint].position;
+        isWaiting = false;
 
-        // Move towards waypoint
-        transform.position = Vector2.MoveTowards(
-            transform.position,
-            targetPosition,
-            stats.speed * Time.deltaTime
-        );
-
-        // Face movement direction
-        FaceDirection(targetPosition.x - transform.position.x);
-
-        // Check if reached waypoint
-        if (Vector2.Distance(transform.position, targetPosition) < WAYPOINT_REACH_DISTANCE)
+        if (isGrounded && IsNearLedge())
         {
-            ReachWaypoint();
+            SwitchState(AIState.Patrolling);
+            return;
         }
-    }
 
-    private void ReachWaypoint()
-    {
-        isIdle = true;
-        currentWaypoint = (currentWaypoint + 1) % waypoints.Length;
-    }
-    #endregion
-
-    #region Suspicion System
-    private void UpdateSuspicion()
-    {
-        if (playerTransform == null) return;
-
-        bool playerInZone = IsPlayerInSuspicionZone();
-
-        if (playerInZone)
+        if (IsPlayerInCombatRange()) { SwitchState(AIState.Combat); return; }
+        if (!IsPlayerInDetectionRange())
         {
-            suspicionLevel += Time.deltaTime;
-            lastKnownPlayerPosition = playerTransform.position;
+            chaseTimer += Time.deltaTime;
+            if (chaseTimer > chaseTimeout) { SwitchState(AIState.Patrolling); chaseTimer = 0; return; }
         }
         else
         {
-            suspicionLevel -= Time.deltaTime;
+            chaseTimer = 0;
+            lastKnownPlayerPosition = player.position;
+        }
+        MoveTowards(lastKnownPlayerPosition, false);
+    }
+
+    void Combat()
+    {
+        isWaiting = false;
+
+        if (isGrounded && IsNearLedge() && (player.position - transform.position).normalized.x == Mathf.Sign(transform.localScale.x))
+        {
+            moveDirection = Vector2.zero;
+        }
+        else
+        {
+            HandleTacticalPositioning(Vector2.Distance(transform.position, player.position));
         }
 
-        suspicionLevel = Mathf.Clamp(suspicionLevel, 0, suspicionThreshold);
+        if (!IsPlayerInCombatRange() && IsPlayerInDetectionRange()) { SwitchState(AIState.Chasing); return; }
+        if (!IsPlayerInDetectionRange()) { SwitchState(AIState.Patrolling); return; }
 
-        wasSuspicious = isSuspicious;
-        isSuspicious = suspicionLevel >= suspicionThreshold;
+        lastActionTimer += Time.deltaTime;
+        float distanceToPlayer = Vector2.Distance(transform.position, player.position);
+
+        if (distanceToPlayer <= stats.attackRange && Time.time > lastAttackTime + stats.attackCooldown) { Attack(); }
+        else if (Time.time > lastDashTime + stats.dashCooldown)
+        {
+            if (distanceToPlayer < 2.5f && Random.value < dashChance) { Dash(); }
+        }
+
+        if (player.position.y > transform.position.y + 1f && isGrounded && Time.time > lastJumpTime + stats.jumpCooldown) { Jump(); }
+
+        if (lastActionTimer >= repositionTime && Time.time > lastDashTime + stats.dashCooldown) { Dash(); }
     }
 
-    private bool IsPlayerInSuspicionZone()
+    void HandleTacticalPositioning(float currentDistance)
     {
-        return suspicionZone != null &&
-               suspicionZone.bounds.Contains(playerTransform.position);
+        float idealDistance = stats.attackRange * 0.8f;
+        float comfortZone = 0.5f;
+
+        if (currentDistance > stats.attackRange) { MoveTowards(player.position, true); }
+        else if (currentDistance < idealDistance - comfortZone) { MoveTowards(transform.position - (player.position - transform.position), true); }
+        else if (currentDistance > idealDistance + comfortZone) { MoveTowards(player.position, true); }
+        else { moveDirection = Vector2.zero; }
     }
 
-    private void MoveToLastKnownPosition()
+    void Attack()
     {
-        Vector2 direction = (lastKnownPlayerPosition - (Vector2)transform.position).normalized;
-        Vector2 newVelocity = new Vector2(
-            direction.x * stats.speed * SUSPICION_MOVE_SPEED_MULTIPLIER,
-            rb.velocity.y
-        );
-
-        rb.velocity = newVelocity;
-        FaceDirection(direction.x);
+        float attackCost = stats.GetActionCost("Attack");
+        if (stats.currentStamina >= attackCost)
+        {
+            lastAttackTime = Time.time;
+            stats.TakeAction(attackCost);
+            animator.SetTrigger("Attack");
+            ResetActionTimer();
+        }
     }
+
+    public void DealDamageToPlayer()
+    {
+        if (player != null && Vector2.Distance(transform.position, player.position) <= stats.attackRange)
+        {
+            CharacterStats playerStats = player.GetComponent<CharacterStats>();
+            if (playerStats != null) playerStats.TakeDamage((int)stats.attackPower);
+            AudioManager.Instance.PlaySFX("Attack");
+        }
+    }
+
+    void Dash()
+    {
+        float dashCost = stats.GetActionCost("Dash");
+        if (stats.currentStamina >= dashCost && !isDashing)
+        {
+            lastDashTime = Time.time;
+            stats.TakeAction(dashCost);
+            animator.SetTrigger("Dash");
+            ResetActionTimer();
+            StartCoroutine(PerformDash());
+        }
+    }
+
+    IEnumerator PerformDash()
+    {
+        AudioManager.Instance.PlaySFX("Dash");
+        isDashing = true;
+
+        float distanceToPlayer = Vector2.Distance(transform.position, player.position);
+        float directionToPlayerX = Mathf.Sign(player.position.x - transform.position.x);
+        float dashDirection;
+
+        if (distanceToPlayer < 5f)
+        {
+            dashDirection = -directionToPlayerX;
+        }
+        else
+        {
+            dashDirection = directionToPlayerX;
+        }
+
+        if (dashDirection == 0)
+        {
+            dashDirection = (transform.localScale.x > 0) ? -1 : 1;
+        }
+
+        Flip(dashDirection);
+        rb.velocity = new Vector2(dashDirection * stats.dashPower, 0f);
+
+        yield return new WaitForSeconds(dashDuration);
+
+        isDashing = false;
+    }
+
+    void Jump()
+    {
+        float jumpCost = stats.GetActionCost("Jump");
+        if (stats.currentStamina >= jumpCost)
+        {
+            lastJumpTime = Time.time;
+            stats.TakeAction(jumpCost);
+            animator.SetTrigger("Jump");
+            AudioManager.Instance.PlaySFX("Jump");
+            rb.AddForce(new Vector2(0, stats.jumpPower), ForceMode2D.Impulse);
+            ResetActionTimer();
+        }
+    }
+
     #endregion
 
-    #region Combat System
-    private void ExecuteAI()
+    #region Physics & Helpers
+
+    void MoveTowards(Vector3 target, bool faceTarget)
     {
-        if (isActionInProgress) return;
-
-        List<CombatAction> availableActions = GetAvailableActions();
-        if (availableActions.Count == 0) return;
-
-        CombatAction selectedAction = availableActions[Random.Range(0, availableActions.Count)];
-        ExecuteAction(selectedAction);
-    }
-
-    private List<CombatAction> GetAvailableActions()
-    {
-        List<CombatAction> actions = new List<CombatAction>();
-        float currentTime = Time.time;
-
-        // Melee attack is always available
-        if (stats.GetActionCost("Attack") <= stats.currentStamina)
-            actions.Add(CombatAction.Attack);
-
-        // Dash if cooldown is ready
-        if (currentTime >= lastDashTime + stats.dashCooldown &&
-            stats.GetActionCost("Dash") <= stats.currentStamina)
-            actions.Add(CombatAction.Dash);
-
-        // Jump if cooldown is ready
-        if (currentTime >= lastJumpTime + stats.jumpCooldown &&
-            stats.GetActionCost("Jump") <= stats.currentStamina)
-            actions.Add(CombatAction.Jump);
-
-        return actions;
-    }
-
-    private void ExecuteAction(CombatAction action)
-    {
-        switch (action)
+        moveDirection = (target - transform.position).normalized;
+        if (faceTarget)
         {
-            case CombatAction.Attack:
-                MeleeAttack();
-                break;
-            case CombatAction.Dash:
-                StartCoroutine(PerformDash());
-                lastDashTime = Time.time;
-                break;
-            case CombatAction.Jump:
-                StartCoroutine(PerformJump());
-                lastJumpTime = Time.time;
-                break;
+            float directionToPlayer = player.position.x - transform.position.x;
+            Flip(directionToPlayer);
         }
     }
 
-    private void MeleeAttack()
+    void ApplyMovement()
     {
-        if (Time.time < lastAttackTime + stats.attackCooldown) return;
-        if (playerController == null) return;
+        if (isDashing) return;
 
-        TriggerAttackAnimation();
-        PlaySFX("AttackedPlayer");
-        playerController.TakeDamage((int)stats.attackPower);
-
-        lastAttackTime = Time.time;
-        stats.TakeAction(stats.GetActionCost("Attack"));
+        if (currentState != AIState.Combat && moveDirection.x != 0) { Flip(moveDirection.x); }
+        rb.velocity = new Vector2(moveDirection.x * stats.speed, rb.velocity.y);
     }
 
-    private IEnumerator PerformDash()
+    void Flip(float directionX)
     {
-        isActionInProgress = true;
-
-        TriggerDashAnimation();
-        Vector2 dashDirection = GetDirectionToPlayer();
-        rb.velocity = dashDirection * stats.dashPower;
-
-        PlaySFX("Dash");
-
-        yield return dashDuration;
-
-        rb.velocity = Vector2.zero;
-        stats.TakeAction(stats.GetActionCost("Dash"));
-        isActionInProgress = false;
+        if (directionX > 0)
+            transform.localScale = new Vector3(Mathf.Abs(transform.localScale.x), transform.localScale.y, transform.localScale.z);
+        else if (directionX < 0)
+            transform.localScale = new Vector3(-Mathf.Abs(transform.localScale.x), transform.localScale.y, transform.localScale.z);
     }
 
-    private IEnumerator PerformJump()
+    void UpdateAnimator()
     {
-        isActionInProgress = true;
+        float horizontalMove = Mathf.Abs(rb.velocity.x);
+        animator.SetFloat("hMove", horizontalMove);
 
-        TriggerJumpAnimation();
-        Vector2 jumpDirection = new Vector2(GetDirectionToPlayer().x, 1).normalized;
-        rb.velocity = new Vector2(jumpDirection.x * stats.speed, stats.jumpPower);
+        bool isIdle = isGrounded && horizontalMove <= 0.01f && !isDashing;
+        animator.SetBool("isIdle", isIdle);
 
-        PlaySFX("Jump");
-
-        yield return jumpMidAir;
-
-        rb.velocity = new Vector2(rb.velocity.x, -stats.jumpPower);
-
-        yield return jumpLanding;
-
-        rb.velocity = Vector2.zero;
-        stats.TakeAction(stats.GetActionCost("Jump"));
-        isActionInProgress = false;
-    }
-    #endregion
-
-    #region Utility Methods
-    private float GetDistanceToPlayer()
-    {
-        return playerTransform != null ?
-               Vector2.Distance(transform.position, playerTransform.position) :
-               float.MaxValue;
+        animator.SetBool("isGrounded", isGrounded);
     }
 
-    private Vector2 GetDirectionToPlayer()
+    void CheckIfGrounded()
     {
-        return playerTransform != null ?
-               (playerTransform.position - transform.position).normalized :
-               Vector2.zero;
+        RaycastHit2D hit = Physics2D.Raycast(transform.position, Vector2.down, groundRaycastDistance, groundLayer);
+        isGrounded = hit.collider != null;
     }
 
-    private void FacePlayer()
+    private bool IsNearLedge()
     {
-        if (playerTransform != null)
+        float direction = Mathf.Sign(transform.localScale.x);
+        Vector2 raycastOrigin = (Vector2)transform.position + new Vector2(direction * ledgeCheckDistance, 0);
+        RaycastHit2D hit = Physics2D.Raycast(raycastOrigin, Vector2.down, groundRaycastDistance, groundLayer);
+        return hit.collider == null;
+    }
+
+
+    private void SwitchState(AIState newState)
+    {
+        if (currentState == newState) return;
+        currentState = newState;
+        ResetActionTimer();
+        if (newState != AIState.Patrolling)
         {
-            FaceDirection(playerTransform.position.x - transform.position.x);
+            isWaiting = false;
         }
     }
 
-    private void FaceDirection(float directionX)
+    private void ResetActionTimer()
     {
-        float scaleX = directionX < 0 ? -1 : 1;
-        transform.localScale = new Vector3(
-            scaleX * Mathf.Abs(originalScale.x),
-            originalScale.y,
-            originalScale.z
-        );
+        lastActionTimer = 0f;
     }
 
-    private void PlaySFX(string sfxName)
+    private bool IsPlayerInDetectionRange()
     {
-        try
-        {
-            AudioManager.Instance?.PlaySFX(sfxName);
-        }
-        catch (System.Exception ex)
-        {
-            Debug.LogWarning($"Failed to play SFX '{sfxName}': {ex.Message}");
-        }
-    }
-    #endregion
-
-    #region Public Methods
-    public void TakeDamage(int damage)
-    {
-        stats?.TakeDamage(damage);
+        return player != null && suspicionZone != null && suspicionZone.bounds.Contains(player.position);
     }
 
-    public void SetWaypoints(Transform[] newWaypoints)
+    private bool IsPlayerInCombatRange()
     {
-        waypoints = newWaypoints;
-        currentWaypoint = 0;
+        return player != null && Vector2.Distance(transform.position, player.position) < combatRange;
     }
 
-    public void SetSuspicionZone(BoxCollider2D newZone)
+    void OnDrawGizmosSelected()
     {
-        suspicionZone = newZone;
-    }
-
-    // Animation Event Methods (called from Animation Events)
-    public void OnAttackHit()
-    {
-        // Called during attack animation at the moment of impact
-        // Damage is already applied in MeleeAttack(), this is for additional effects
-        Debug.Log("Attack hit registered!");
-    }
-
-    public void OnDashComplete()
-    {
-        // Called when dash animation completes
-        Debug.Log("Dash animation complete!");
-    }
-
-    public void OnJumpLanding()
-    {
-        // Called when jump landing animation completes
-        Debug.Log("Jump landing complete!");
-    }
-    #endregion
-
-    #region Debug Visualization
-    private void DrawDebugGizmos()
-    {
-        if (stats == null) return;
-
-        // Draw attack range
+        if (suspicionZone != null) { Gizmos.color = Color.yellow; Gizmos.DrawWireCube(suspicionZone.bounds.center, suspicionZone.bounds.size); }
         Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(transform.position, stats.attackRange);
-
-        // Draw patrol waypoints
-        DrawWaypointGizmos();
-
-        // Draw suspicion zone
-        if (suspicionZone != null)
-        {
-            Gizmos.color = Color.yellow;
-            Gizmos.DrawWireCube(suspicionZone.bounds.center, suspicionZone.bounds.size);
-        }
-
-        // Draw ground check
-        Gizmos.color = isGrounded ? Color.green : Color.red;
-        Gizmos.DrawLine(transform.position, transform.position + Vector3.down * GROUND_CHECK_DISTANCE);
-
-        // Draw current state
-        DrawStateGizmo();
-    }
-
-    private void DrawWaypointGizmos()
-    {
-        if (waypoints == null || waypoints.Length == 0) return;
-
-        Gizmos.color = Color.blue;
-        foreach (Transform waypoint in waypoints)
-        {
-            if (waypoint != null)
-            {
-                Gizmos.DrawSphere(waypoint.position, 0.2f);
-            }
-        }
-
-        // Draw patrol path
+        Gizmos.DrawWireSphere(transform.position, combatRange);
         Gizmos.color = Color.cyan;
-        for (int i = 0; i < waypoints.Length; i++)
-        {
-            int nextIndex = (i + 1) % waypoints.Length;
-            if (waypoints[i] != null && waypoints[nextIndex] != null)
-            {
-                Gizmos.DrawLine(waypoints[i].position, waypoints[nextIndex].position);
-            }
-        }
+        Gizmos.DrawLine(transform.position, transform.position + Vector3.down * groundRaycastDistance);
+        if (stats != null) { Gizmos.color = Color.green; Gizmos.DrawWireSphere(transform.position, stats.attackRange * 0.8f); }
+
+        float direction = transform.localScale.x > 0 ? 1 : -1;
+        Vector2 raycastOrigin = (Vector2)transform.position + new Vector2(direction * ledgeCheckDistance, 0);
+        Gizmos.color = Color.magenta;
+        Gizmos.DrawLine(raycastOrigin, raycastOrigin + Vector2.down * groundRaycastDistance);
     }
 
-    private void DrawStateGizmo()
-    {
-        Vector3 textPosition = transform.position + Vector3.up * 2f;
-
-#if UNITY_EDITOR
-        UnityEditor.Handles.Label(textPosition, $"State: {currentState}\nSuspicion: {suspicionLevel:F1}\nWalking: {isWalking}\nGrounded: {isGrounded}");
-#endif
-    }
     #endregion
 }

@@ -16,6 +16,7 @@ public class InstantRegen : MonoBehaviour
             CharacterStats characterStats = other.GetComponent<CharacterStats>();
             if (characterStats != null)
             {
+                AudioManager.Instance.PlaySFX("Regen");
                 switch (regenType)
                 {
                     case RegenType.Health:

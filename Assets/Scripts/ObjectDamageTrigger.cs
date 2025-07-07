@@ -29,8 +29,8 @@ public class ObjectDamageTrigger : MonoBehaviour
 
                 switch (damageType)
                 {
-                    case DamageType.MaxHealth:
-                        damage = characterStats.maxHealth;
+                    case DamageType.GameOver:
+                        damage = characterStats.maxHealth - 1f; // Set health to 1 less than max health for Game Over
                         break;
                     case DamageType.Manual:
                         damage = manualDamage;
@@ -61,8 +61,8 @@ public class ObjectDamageTrigger : MonoBehaviour
 
                 switch (damageType)
                 {
-                    case DamageType.MaxHealth:
-                        damage = characterStats.maxHealth;
+                    case DamageType.GameOver:
+                        damage = characterStats.maxHealth - 1f; // Set health to 1 less than max health for Game Over
                         break;
                     case DamageType.Manual:
                         damage = manualDamage;
@@ -81,7 +81,7 @@ public class ObjectDamageTrigger : MonoBehaviour
 
 public enum DamageType
 {
-    MaxHealth,
+    GameOver,
     Manual
 }
 

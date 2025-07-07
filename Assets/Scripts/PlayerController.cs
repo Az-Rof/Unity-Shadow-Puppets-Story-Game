@@ -16,7 +16,7 @@ public class PlayerController : MonoBehaviour
     Animator animator;
 
     // Input System for Mobile Controls
-    InputSystem_Actions inputActions;
+    public InputSystem_Actions inputActions;
 
     // Pause Menu
     GameObject pausePanel;
@@ -75,13 +75,18 @@ public class PlayerController : MonoBehaviour
 
     void Start()
     {
-
         // Initialize sliders
-        healthSlider.maxValue = stats.maxHealth;
-        healthSlider.value = stats.currentHealth;
-        staminaSlider.maxValue = stats.maxStamina;
-        staminaSlider.value = stats.currentStamina;
-
+        if (healthSlider != null && staminaSlider != null && stats != null)
+        {
+            healthSlider.maxValue = stats.maxHealth;
+            healthSlider.value = stats.currentHealth;
+            staminaSlider.maxValue = stats.maxStamina;
+            staminaSlider.value = stats.currentStamina;
+        }
+        else
+        {
+            Debug.LogWarning("Health or Stamina sliders are not assigned or stats is null. Please assign them in the inspector.");
+        }
     }
 
     void FixedUpdate()
@@ -468,8 +473,25 @@ public class PlayerController : MonoBehaviour
     }
     void sliderUpdate()
     {
-        healthSlider.value = stats.currentHealth; // Update health slider
-        staminaSlider.value = stats.currentStamina; // Update stamina slider
+        if (healthSlider != null && staminaSlider != null && stats != null)
+        {
+            // Update the health and stamina sliders based on current stats
+            healthSlider.value = stats.currentHealth;
+            staminaSlider.value = stats.currentStamina;
+        }
+        else
+        {
+            if (healthSlider == null || staminaSlider == null)
+            {
+                GameObject sliders = GameObject.Find("Canvas").transform.Find("GUI").Find("Sliders").gameObject;
+                healthSlider = sliders.transform.Find("HealthSlider").GetComponent<Slider>();
+                staminaSlider = sliders.transform.Find("StaminaSlider").GetComponent<Slider>();
+            }
+            else
+            {
+                Debug.LogWarning("Health and Stamina sliders are not assigned in the inspector. Please assign them.");
+            }
+        }
     }
     // On-Enable and On-Disable methods for Input System
     private void OnEnable()

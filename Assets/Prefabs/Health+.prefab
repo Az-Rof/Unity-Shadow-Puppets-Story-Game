@@ -150,7 +150,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   regenType: 0
-  amount: 40
+  amount: 25
 --- !u!58 &5157379896595508284
 CircleCollider2D:
   m_ObjectHideFlags: 0

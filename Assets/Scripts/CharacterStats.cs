@@ -3,12 +3,16 @@ using UnityEngine.UI;
 using System.Collections;
 using System.Collections.Generic;
 using Unity.VisualScripting;
+using UnityEngine.Playables;
 
 public class CharacterStats : MonoBehaviour
 {
     [Header("Character Info")]
     public string CharacterName;
     public string CharacterType;
+    [SerializeField] bool isthisImportantCharacter = false; // Flag to check if this is an important character
+
+    Enemy enemyScript; // Reference to the Enemy script if this character is an enemy
 
     // Basic Stats
     [Header("Basic Stats")]
@@ -23,6 +27,10 @@ public class CharacterStats : MonoBehaviour
     public float jumpCooldown;
     public float dashPower;
     public float dashCooldown;
+
+    [Header("Cutscene on Death")]
+    [SerializeField] private PlayableDirector deathCutscene;
+    private bool hasTriggeredDeath = false; // Flag untuk memastikan cutscene hanya play sekali
 
 
     [SerializeField] public float healthRegenRate, staminaRegenRate;
@@ -42,36 +50,59 @@ public class CharacterStats : MonoBehaviour
         new TakeActionCost() { ActionName = "Attack", CostValue = 10 },
     };
 
-    // Set the Standar Action for action costs 
+    // Set the Standard Action for action costs
 
+    void Awake()
+    {
+
+    }
 
     void Start()
     {
-        InitiateCharacterStats();
-        InitiateSliders();
+        // Initialize character stats
 
+        InitiateSliders();
+        InitiateCharacterStats();
+        InitiateEnemy();
         // Update the current health and stamina value
         StartCoroutine(Regenerate());
     }
 
     void Update()
     {
-        if (currentHealth <= 0)
+        // Kondisi kematian sekarang hanya akan memicu event satu kali saja
+        if (currentHealth <= 0 && !hasTriggeredDeath)
         {
-            if (tag == "Player")
-            {
-                Debug.Log(gameObject.name + " has died. Game Over.");
-                // Activate Game Over UI or any other logic
-                if (GameObject.Find("GameOverUI") != null)
-                {
-                    GameObject.Find("GameOverUI").SetActive(true);
-                }
-                Time.timeScale = 0; // Pause the game
-            }
-            else if (tag == "Enemy")
+            hasTriggeredDeath = true; // Langsung set flag agar tidak ter-trigger lagi
+
+            if (tag == "Enemy" && !isthisImportantCharacter)
             {
                 Debug.Log(gameObject.name + " has died. Enemy defeated.");
-                Die(); // Call the Die method to destroy the enemy
+                Die();
+            }
+            else if (tag == "Player" && isthisImportantCharacter)
+            {
+                Debug.Log(gameObject.name + " has died. Game Over.");
+                // Logika Game Over
+            }
+            else if (tag == "Enemy" && isthisImportantCharacter)
+            {
+                Debug.Log(gameObject.name + " has died. Important Enemy defeated.");
+
+                if (enemyScript != null)
+                {
+                    enemyScript.enabled = false; // Matikan skrip AI musuh
+                }
+
+                // PERUBAHAN UTAMA: Putar cutscene dari sini
+                if (deathCutscene != null)
+                {
+                    deathCutscene.Play();
+                }
+                else
+                {
+                    Debug.LogWarning("Death cutscene belum di-set di Inspector untuk " + gameObject.name);
+                }
             }
         }
     }
@@ -93,6 +124,18 @@ public class CharacterStats : MonoBehaviour
     {
         // Find the NameTagCanvas object
         GameObject canvasObject = GameObject.Find("NameTagCanvas");
+    }
+
+    void InitiateEnemy()
+    {
+        if (tag == "Enemy")
+        {
+            enemyScript = GetComponent<Enemy>();
+        }
+        else
+        {
+            return; // If not an enemy, exit the method
+        }
     }
 
     public IEnumerator Regenerate()

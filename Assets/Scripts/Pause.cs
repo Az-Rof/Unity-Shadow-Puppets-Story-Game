@@ -12,8 +12,16 @@ public class Pause : MonoBehaviour
     public PlayableDirector SkipTimeline; // Reference to the PlayableDirector for skipping timeline    
     [Header("Pause Panel")]
     public GameObject PausePanel;
+    public GameObject GameOverPanel;
     public List<GameObject> PopUp = new List<GameObject>();
+    PlayerController playerController;
 
+
+    private void FixedUpdate()
+    {
+        // Check if the player is dead and trigger Game Over
+        GameOver();
+    }
     // Fungsi ini digunakan untuk  pause di game
     public void pause()
     {
@@ -31,16 +39,19 @@ public class Pause : MonoBehaviour
 
     public void RestartGame()
     {
+        if (Time.timeScale == 0f)
+        {
+            Time.timeScale = 1f; // Resume time before restarting
+        }
         // This function will be called when the restart button is clicked
         CharacterStats characterStats = FindObjectOfType<CharacterStats>();
         if (characterStats != null)
         {
-            characterStats.currentHealth = characterStats.maxHealth;
-            characterStats.currentStamina = characterStats.maxStamina;
+            // characterStats.currentHealth = characterStats.maxHealth;
+            // characterStats.currentStamina = characterStats.maxStamina;
         }
 
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
-        Time.timeScale = 1f;
         PausePanel.SetActive(false);
 
         // Skip timeline introduction
@@ -70,6 +81,20 @@ public class Pause : MonoBehaviour
         Time.timeScale = 0;
 
     }
+
+    public void GameOver()
+    {
+        PlayerController playerController = FindObjectOfType<PlayerController>();
+        if (playerController != null && playerController.Stats.currentHealth <= 0)
+        {
+            Time.timeScale = 0; // Pause the game
+            Debug.Log(gameObject.name + " has died. Game Over.");
+            // Activate Game Over UI or any other logic
+            GameOverPanel.SetActive(true);
+
+        }
+    }
+
     public void PopUp_RestartGame()
     {
         // Fungsi ini akan di panggil saat button continue di klik
@@ -119,7 +144,7 @@ public class Pause : MonoBehaviour
             }
         }
     }
-    
+
     // Debugging function to skip the timeline
     public void SkipTimelineIntroduction()
     {

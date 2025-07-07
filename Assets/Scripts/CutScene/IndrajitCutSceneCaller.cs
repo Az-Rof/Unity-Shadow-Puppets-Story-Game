@@ -17,10 +17,10 @@ public class IndrajitCutSceneCaller : MonoBehaviour
 
     // Player interacts with the cutscene
     // This method can be called when the player interacts with an object or trigger
-    void OnTriggerEnter2D(Collider2D collision)
+    void OnTriggerStay2D(Collider2D collision)
     {
         // Check if the in the collider theres is an enemy
-        if (collision.CompareTag("Player") && GameObject.Find("Buto") != null)
+        if (collision.CompareTag("Player") && GameObject.FindGameObjectsWithTag("Enemy").Length == 0)
         {
             // Call the cutscene when the player enters the trigger
             CallCutScene();
