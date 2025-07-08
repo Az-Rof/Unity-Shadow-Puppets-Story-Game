@@ -576,7 +576,7 @@ MonoBehaviour:
     exposedName: f1f71fc368135b54cb8a53d0280cbb79
     defaultValue: {fileID: 0}
   dialogText: Ampun beribu ampun, Duh, Gusti Putri. Janganlah paduka terkejut. Hamba
-    bukanlah musuh. Hamba adalah utusan
+    bukanlah musuh. Hamba adalah utusan.
   shakeOnSpeak: 0
 --- !u!114 &-6276135536381004787
 MonoBehaviour:
@@ -7109,7 +7109,7 @@ MonoBehaviour:
     exposedName: fd7fdddde7b10c047bcd6c55e869ab34
     defaultValue: {fileID: 0}
   dialogText: Cincin ini... Astaga, ini adalah Cincin Sotya Ludira, milik Kakanda
-    Prabu Rama! Oh, utusan dewa, maafkan aku.
+    Prabu Rama! Oh dewa, maafkan aku.
   shakeOnSpeak: 1
 --- !u!114 &3516214333383459646
 MonoBehaviour:
@@ -7185,25 +7185,7 @@ MonoBehaviour:
       m_RotationOrder: 4
     m_MixOutCurve:
       serializedVersion: 2
-      m_Curve:
-      - serializedVersion: 3
-        time: 0
-        value: 1
-        inSlope: 0
-        outSlope: 0
-        tangentMode: 0
-        weightedMode: 0
-        inWeight: 0
-        outWeight: 0
-      - serializedVersion: 3
-        time: 1
-        value: 0
-        inSlope: 0
-        outSlope: 0
-        tangentMode: 0
-        weightedMode: 0
-        inWeight: 0
-        outWeight: 0
+      m_Curve: []
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
@@ -7230,49 +7212,13 @@ MonoBehaviour:
     m_BlendOutDuration: 0.36666666666667425
     m_MixInCurve:
       serializedVersion: 2
-      m_Curve:
-      - serializedVersion: 3
-        time: 0
-        value: 0
-        inSlope: 0
-        outSlope: 0
-        tangentMode: 0
-        weightedMode: 0
-        inWeight: 0
-        outWeight: 0
-      - serializedVersion: 3
-        time: 1
-        value: 1
-        inSlope: 0
-        outSlope: 0
-        tangentMode: 0
-        weightedMode: 0
-        inWeight: 0
-        outWeight: 0
+      m_Curve: []
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
     m_MixOutCurve:
       serializedVersion: 2
-      m_Curve:
-      - serializedVersion: 3
-        time: 0
-        value: 1
-        inSlope: 0
-        outSlope: 0
-        tangentMode: 0
-        weightedMode: 0
-        inWeight: 0
-        outWeight: 0
-      - serializedVersion: 3
-        time: 1
-        value: 0
-        inSlope: 0
-        outSlope: 0
-        tangentMode: 0
-        weightedMode: 0
-        inWeight: 0
-        outWeight: 0
+      m_Curve: []
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
@@ -7299,25 +7245,7 @@ MonoBehaviour:
     m_BlendOutDuration: -1
     m_MixInCurve:
       serializedVersion: 2
-      m_Curve:
-      - serializedVersion: 3
-        time: 0
-        value: 0
-        inSlope: 0
-        outSlope: 0
-        tangentMode: 0
-        weightedMode: 0
-        inWeight: 0
-        outWeight: 0
-      - serializedVersion: 3
-        time: 1
-        value: 1
-        inSlope: 0
-        outSlope: 0
-        tangentMode: 0
-        weightedMode: 0
-        inWeight: 0
-        outWeight: 0
+      m_Curve: []
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
@@ -12661,7 +12589,7 @@ MonoBehaviour:
     exposedName: 2458dc9d8e1e3b640a13f6ee12c3defc
     defaultValue: {fileID: 0}
   dialogText: Cincin ini diberikan kepada hamba untuk meyakinkan Gusti Putri kalau
-    hamba    adalah utusan beliau.
+    hamba adalah utusan beliau.
   shakeOnSpeak: 0
 --- !u!74 &5349458656469092847
 AnimationClip:
