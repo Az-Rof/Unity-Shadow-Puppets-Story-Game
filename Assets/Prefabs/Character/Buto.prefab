@@ -998,7 +998,7 @@ MonoBehaviour:
   isthisImportantCharacter: 0
   maxHealth: 50
   maxStamina: 100
-  attackPower: 20
+  attackPower: 30
   attackRange: 4
   attackCooldown: 1
   defensePower: 10

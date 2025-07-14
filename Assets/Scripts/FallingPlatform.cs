@@ -14,6 +14,7 @@ public class FallingPlatform : MonoBehaviour
         rb = GetComponent<Rigidbody2D>();
         trigger = GetComponent<BoxCollider2D>();
         animator = GetComponent<Animator>();
+        rb.bodyType = RigidbodyType2D.Kinematic;
     }
 
     void OnTriggerEnter2D(Collider2D collision)
@@ -35,3 +36,4 @@ public class FallingPlatform : MonoBehaviour
         rb.bodyType = RigidbodyType2D.Dynamic;
     }
 }
+

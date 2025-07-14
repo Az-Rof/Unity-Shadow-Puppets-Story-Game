@@ -1206,13 +1206,13 @@ MonoBehaviour:
   attackCooldown: 0
   defensePower: 15
   speed: 15
-  jumpPower: 15
+  jumpPower: 18
   jumpCooldown: 0
   dashPower: 100
   dashCooldown: 0
   deathCutscene: {fileID: 0}
-  healthRegenRate: 100
-  staminaRegenRate: 1000
+  healthRegenRate: 75
+  staminaRegenRate: 750
   currentHealth: 0
   currentStamina: 0
   actionCosts:
