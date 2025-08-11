@@ -32,35 +32,50 @@ public class PlayerController : MonoBehaviour
     // Player Attack Variables
     private float lastAttackTime = 0f;
 
-    [SerializeField] bool onground;
-    [SerializeField] bool isjump;
+    [SerializeField]
+    bool onground;
 
-    [SerializeField] float jumpCooldownTimer = 0f;
+    [SerializeField]
+    bool isjump;
+
+    [SerializeField]
+    float jumpCooldownTimer = 0f;
     public LayerMask groundLayer;
 
     // Dashing
     private bool canDash = true;
     private bool isDashing;
-    [SerializeField] float dashingTime = 0.2f;
-    [SerializeField] private TrailRenderer tr;
+
+    [SerializeField]
+    float dashingTime = 0.2f;
+
+    [SerializeField]
+    private TrailRenderer tr;
 
     // Wall Jump
-    [SerializeField] private float wallSlideSpeed = 0.75f;
-    [SerializeField] private LayerMask wallLayer;
-    [SerializeField] private float wallCheckDistance = 0.25f;
+    [SerializeField]
+    private float wallSlideSpeed = 0.75f;
+
+    [SerializeField]
+    private LayerMask wallLayer;
+
+    [SerializeField]
+    private float wallCheckDistance = 0.25f;
     private bool isWallSliding = false;
     private bool isWallJumping = false;
     private float wallJumpDirection = 0f;
     private float wallJumpTime = 0.2f;
     private float wallJumpTimer;
 
-    [SerializeField] private bool isJumping = false;
+    [SerializeField]
+    private bool isJumping = false;
 
     // Boolean part of cutscene even if the player was going to death
     // [SerializeField] public bool isCutscene;
 
     // Stats
-    public Slider healthSlider, staminaSlider; // Sliders for UI representation
+    public Slider healthSlider,
+        staminaSlider; // Sliders for UI representation
 
     void Awake()
     {
@@ -85,7 +100,9 @@ public class PlayerController : MonoBehaviour
         }
         else
         {
-            Debug.LogWarning("Health or Stamina sliders are not assigned or stats is null. Please assign them in the inspector.");
+            Debug.LogWarning(
+                "Health or Stamina sliders are not assigned or stats is null. Please assign them in the inspector."
+            );
         }
     }
 
@@ -134,10 +151,21 @@ public class PlayerController : MonoBehaviour
         pausePanel = GameObject.Find("Canvas").transform.Find("GUI").Find("Pause").gameObject;
         pausePanel.SetActive(false); // Ensure the pause panel is initially inactive
     }
+
     private bool IsTouchingWall()
     {
-        RaycastHit2D hitRight = Physics2D.Raycast(transform.position, Vector2.right, wallCheckDistance, wallLayer);
-        RaycastHit2D hitLeft = Physics2D.Raycast(transform.position, Vector2.left, wallCheckDistance, wallLayer);
+        RaycastHit2D hitRight = Physics2D.Raycast(
+            transform.position,
+            Vector2.right,
+            wallCheckDistance,
+            wallLayer
+        );
+        RaycastHit2D hitLeft = Physics2D.Raycast(
+            transform.position,
+            Vector2.left,
+            wallCheckDistance,
+            wallLayer
+        );
         bool isTouchingWall = hitRight.collider != null || hitLeft.collider != null; // Check if the player is touching a wall
         isWallSliding = isTouchingWall; // Update the isWallSliding variable
         return isTouchingWall; // Return the result
@@ -220,9 +248,16 @@ public class PlayerController : MonoBehaviour
             }
         }
     }
+
     void jump()
     {
-        if (!isJumping && !isjump && onground && jumpCooldownTimer <= 0f && stats.GetActionCost("Jump") <= stats.currentStamina)
+        if (
+            !isJumping
+            && !isjump
+            && onground
+            && jumpCooldownTimer <= 0f
+            && stats.GetActionCost("Jump") <= stats.currentStamina
+        )
         {
             stats.TakeAction(stats.GetActionCost("Jump")); // Reduce stamina for jump action
             isGrounded(); // Check if the player is grounded before jumping
@@ -244,12 +279,17 @@ public class PlayerController : MonoBehaviour
             {
                 transform.localScale = new Vector3(1f, 1f, 1f); // Hadap ke kanan
             }
-            else if (Physics2D.Raycast(transform.position, Vector2.left, wallCheckDistance, wallLayer))
+            else if (
+                Physics2D.Raycast(transform.position, Vector2.left, wallCheckDistance, wallLayer)
+            )
             {
                 transform.localScale = new Vector3(-1f, 1f, 1f); // Hadap ke kiri
             }
 
-            rb.velocity = new Vector2(rb.velocity.x, Mathf.Clamp(rb.velocity.y, -wallSlideSpeed, float.MaxValue));
+            rb.velocity = new Vector2(
+                rb.velocity.x,
+                Mathf.Clamp(rb.velocity.y, -wallSlideSpeed, float.MaxValue)
+            );
             animator.SetBool("wallSliding", true);
         }
         else
@@ -274,7 +314,9 @@ public class PlayerController : MonoBehaviour
                 wallDirection = -1f; // Wall is on the right, jump to left
                 Debug.Log("Wall on right, jumping left");
             }
-            else if (Physics2D.Raycast(transform.position, Vector2.left, wallCheckDistance, wallLayer))
+            else if (
+                Physics2D.Raycast(transform.position, Vector2.left, wallCheckDistance, wallLayer)
+            )
             {
                 wallDirection = 1f; // Wall is on the left, jump to right
                 Debug.Log("Wall on left, jumping right");
@@ -433,11 +475,17 @@ public class PlayerController : MonoBehaviour
                 Vector2 attackDirection = transform.localScale.x < 0 ? Vector2.left : Vector2.right;
 
                 // Define the attack box center and size
-                Vector2 boxCenter = (Vector2)transform.position + attackDirection * (stats.attackRange / 2f);
+                Vector2 boxCenter =
+                    (Vector2)transform.position + attackDirection * (stats.attackRange / 2f);
                 Vector2 boxSize = new Vector2(stats.attackRange, 1f); // 1f is height of the line area
 
                 // Find all enemies in the attack area
-                Collider2D[] hitEnemies = Physics2D.OverlapBoxAll(boxCenter, boxSize, 0f, LayerMask.GetMask("Enemy"));
+                Collider2D[] hitEnemies = Physics2D.OverlapBoxAll(
+                    boxCenter,
+                    boxSize,
+                    0f,
+                    LayerMask.GetMask("Enemy")
+                );
 
                 bool attacked = false;
 
@@ -452,7 +500,9 @@ public class PlayerController : MonoBehaviour
                         }
                         catch (System.Exception)
                         {
-                            Debug.LogWarning("AudioManager.Instance not found or PlaySFX method failed.");
+                            Debug.LogWarning(
+                                "AudioManager.Instance not found or PlaySFX method failed."
+                            );
                         }
 
                         enemy.TakeDamage((int)stats.attackPower);
@@ -460,7 +510,14 @@ public class PlayerController : MonoBehaviour
                         // Trigger attack animation
 
                         // Log the attack for debugging
-                        Debug.Log(gameObject.name + " attacked " + enemy.gameObject.name + " for " + (int)stats.attackPower + " damage.");
+                        Debug.Log(
+                            gameObject.name
+                                + " attacked "
+                                + enemy.gameObject.name
+                                + " for "
+                                + (int)stats.attackPower
+                                + " damage."
+                        );
                     }
                 }
                 if (attacked)
@@ -469,8 +526,8 @@ public class PlayerController : MonoBehaviour
                 }
             }
         }
-
     }
+
     void sliderUpdate()
     {
         if (healthSlider != null && staminaSlider != null && stats != null)
@@ -483,21 +540,29 @@ public class PlayerController : MonoBehaviour
         {
             if (healthSlider == null || staminaSlider == null)
             {
-                GameObject sliders = GameObject.Find("Canvas").transform.Find("GUI").Find("Sliders").gameObject;
+                GameObject sliders = GameObject
+                    .Find("Canvas")
+                    .transform.Find("GUI")
+                    .Find("Sliders")
+                    .gameObject;
                 healthSlider = sliders.transform.Find("HealthSlider").GetComponent<Slider>();
                 staminaSlider = sliders.transform.Find("StaminaSlider").GetComponent<Slider>();
             }
             else
             {
-                Debug.LogWarning("Health and Stamina sliders are not assigned in the inspector. Please assign them.");
+                Debug.LogWarning(
+                    "Health and Stamina sliders are not assigned in the inspector. Please assign them."
+                );
             }
         }
     }
+
     // On-Enable and On-Disable methods for Input System
     private void OnEnable()
     {
         inputActions.Player.Enable();
     }
+
     private void OnDisable()
     {
         inputActions.Player.Disable();
@@ -506,10 +571,12 @@ public class PlayerController : MonoBehaviour
     // Visualize attack range in editor
     void OnDrawGizmosSelected()
     {
-        if (stats == null) return;
+        if (stats == null)
+            return;
         Gizmos.color = Color.red;
         Vector2 attackDirection = transform.localScale.x < 0 ? Vector2.left : Vector2.right;
-        Vector2 boxCenter = (Vector2)transform.position + attackDirection * (stats.attackRange / 2f);
+        Vector2 boxCenter =
+            (Vector2)transform.position + attackDirection * (stats.attackRange / 2f);
         Vector2 boxSize = new Vector2(stats.attackRange, 1f); // 1f is height of the line area
         Gizmos.DrawWireCube(boxCenter, boxSize);
     }

@@ -1,16 +1,18 @@
-using UnityEngine;
-using UnityEngine.UI;
 using System.Collections;
 using System.Collections.Generic;
 using Unity.VisualScripting;
+using UnityEngine;
 using UnityEngine.Playables;
+using UnityEngine.UI;
 
 public class CharacterStats : MonoBehaviour
 {
     [Header("Character Info")]
     public string CharacterName;
     public string CharacterType;
-    [SerializeField] bool isthisImportantCharacter = false; // Flag to check if this is an important character
+
+    [SerializeField]
+    bool isthisImportantCharacter = false; // Flag to check if this is an important character
 
     Enemy enemyScript; // Reference to the Enemy script if this character is an enemy
 
@@ -29,11 +31,13 @@ public class CharacterStats : MonoBehaviour
     public float dashCooldown;
 
     [Header("Cutscene on Death")]
-    [SerializeField] private PlayableDirector deathCutscene;
+    [SerializeField]
+    private PlayableDirector deathCutscene;
     private bool hasTriggeredDeath = false; // Flag untuk memastikan cutscene hanya play sekali
 
-
-    [SerializeField] public float healthRegenRate, staminaRegenRate;
+    [SerializeField]
+    public float healthRegenRate,
+        staminaRegenRate;
 
     // Current Stats
     [Header("CurrentStats")]
@@ -52,10 +56,7 @@ public class CharacterStats : MonoBehaviour
 
     // Set the Standard Action for action costs
 
-    void Awake()
-    {
-
-    }
+    void Awake() { }
 
     void Start()
     {
@@ -79,6 +80,11 @@ public class CharacterStats : MonoBehaviour
             {
                 Debug.Log(gameObject.name + " has died. Enemy defeated.");
                 Die();
+                Score score = FindObjectOfType<Score>();
+                if (score != null)
+                {
+                    score.IncreaseScore(+100);
+                }
             }
             else if (tag == "Player" && isthisImportantCharacter)
             {
@@ -101,7 +107,9 @@ public class CharacterStats : MonoBehaviour
                 }
                 else
                 {
-                    Debug.LogWarning("Death cutscene belum di-set di Inspector untuk " + gameObject.name);
+                    Debug.LogWarning(
+                        "Death cutscene belum di-set di Inspector untuk " + gameObject.name
+                    );
                 }
             }
         }
@@ -113,13 +121,13 @@ public class CharacterStats : MonoBehaviour
         CharacterName = this.gameObject.name;
         CharacterType = this.gameObject.tag;
 
-        // Inisialisasi Basic Stats 
+        // Inisialisasi Basic Stats
         currentHealth = maxHealth;
         currentStamina = maxStamina;
 
         // Inisialiasi sliders was moved to NameTag.cs
-
     }
+
     void InitiateSliders()
     {
         // Find the NameTagCanvas object
@@ -162,7 +170,6 @@ public class CharacterStats : MonoBehaviour
         currentHealth -= (damage - defensePower); // Reduce health by the damage amount
     }
 
-
     // Method to check if the character can perform a dash action
     public bool CanAction()
     {
@@ -180,7 +187,7 @@ public class CharacterStats : MonoBehaviour
         if (CanAction())
         {
             currentStamina -= actionValue; // Reduce stamina by the action value
-            currentStamina = Mathf.Max(currentStamina, 0); // Ensure stamina doesn't go below 0   
+            currentStamina = Mathf.Max(currentStamina, 0); // Ensure stamina doesn't go below 0
         }
     }
 

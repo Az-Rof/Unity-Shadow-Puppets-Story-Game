@@ -37,6 +37,11 @@ public class InstantRegen : MonoBehaviour
                         break;
                 }
             }
+            Score score = FindObjectOfType<Score>();
+            if (score != null)
+            {
+                score.IncreaseScore(25); // Increase score by 25 for health pickup
+            }
             // Destroy the pickup object after it's used.
             Destroy(gameObject);
         }

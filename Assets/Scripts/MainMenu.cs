@@ -17,11 +17,11 @@ public class MainMenu : MonoBehaviour
     {
         { "Anoman's Obong Arc", "Anoman_Lv1" },
         { "Ramayana vs Ravana Arc", "Ramayana_Lv1" },
-        
+
     };
 
 
-    public Button StartButton, ContinueButton, SettingsButton, ExitButton;
+    public Button StartButton, ContinueButton, CreditButton, SettingsButton, ExitButton;
 
     private void Awake()
     {
@@ -41,6 +41,10 @@ public class MainMenu : MonoBehaviour
         StartButton.onClick.AddListener(PopUp_StartGame);
         ExitButton.onClick.AddListener(PopUp_quit);
         SettingsButton.onClick.AddListener(PopUp_Settings);
+        if (CreditButton != null)
+        {
+            CreditButton.onClick.AddListener(PopUp_Credit);
+        }
         // Pause();
     }
 
@@ -102,6 +106,22 @@ public class MainMenu : MonoBehaviour
         foreach (GameObject PopUp in PopUp)
         {
             if (PopUp.name == "SettingsGame")
+            {
+                PopUp.SetActive(true);
+            }
+            else
+            {
+                PopUp.SetActive(false);
+            }
+        }
+    }
+    public void PopUp_Credit()
+    {
+        // Fungsi ini akan di panggil saat button credit di klik
+        // Digunakan untuk menampilkan popup credit game dan menghilangkan popup yang lain
+        foreach (GameObject PopUp in PopUp)
+        {
+            if (PopUp.name == "CreditGame")
             {
                 PopUp.SetActive(true);
             }
