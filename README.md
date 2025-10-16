@@ -1,7 +1,7 @@
 # Unity Shadow Puppets Story Game
 
 ## Overview
-Unity Shadow Puppets Story Game is a narrative-driven game inspired by the iconic Javanese wayang (shadow puppet) tradition, specifically the epic story of "Anoman Obong" from the Ramayana. The game brings to life the heroic journey of Anoman, the white monkey warrior, as he embarks on a sacred mission to rescue Dewi Shinta and confront the forces of the evil King Rahwana in the kingdom of Alengka.
+Unity Shadow Puppets Story Game is a 2D narrative-driven game inspired by the iconic Javanese wayang (shadow puppet) tradition, specifically the epic story of "Anoman Obong" from the Ramayana. The game brings to life the heroic journey of Anoman, the white monkey warrior, as he embarks on a sacred mission to rescue Dewi Shinta and confront the forces of the evil King Rahwana in the kingdom of Alengka.
 
 This project is deeply rooted in Javanese culture and mythology, blending traditional storytelling with modern game design to create an immersive experience that celebrates the rich heritage of Indonesia.
 
@@ -22,8 +22,6 @@ For more detailed background on the story and characters, refer to the included 
 - Immersive sound effects and music.
 - Interactive gameplay with story-driven objectives.
 
-## License
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
 ## Credits
 - Developed by Rofi Azhar
